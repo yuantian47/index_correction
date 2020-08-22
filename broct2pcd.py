@@ -23,13 +23,8 @@ class Broct2pcd:
         x_unit = self.dim_arr[0][0] / self.dim_arr[1][0]
         y_unit = self.dim_arr[0][1] / self.dim_arr[1][1]
         z_unit = self.dim_arr[0][2] / self.dim_arr[1][2]
-        max_Ascan_index = np.argmax(self.volume, axis=1)
-        volume_singlelay = []
-        for i in tqdm(range(max_Ascan_index.shape[0])):
-            for j in range(max_Ascan_index.shape[1]):
-                if self.volume[i, max_Ascan_index[i][j], j] >= self.threshold:
-                    volume_singlelay.append([i, max_Ascan_index[i][j], j])
-        processed_volume = np.multiply(volume_singlelay, np.array([z_unit, y_unit, x_unit]))
+        volume_thresholded_idx = np.argwhere(self.volume > self.threshold)
+        processed_volume = np.multiply(volume_thresholded_idx, np.array([z_unit, y_unit, x_unit]))
         processed_volume = np.flip(processed_volume, 1)
         return processed_volume
 
