@@ -1,0 +1,6 @@
+setup.py
+src/PyBROCT.egg-info/PKG-INFO
+src/PyBROCT.egg-info/SOURCES.txt
+src/PyBROCT.egg-info/dependency_links.txt
+src/PyBROCT.egg-info/not-zip-safe
+src/PyBROCT.egg-info/top_level.txt
