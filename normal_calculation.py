@@ -49,14 +49,35 @@ class Marcos_normal:
         return self.normal
 
 
+def angle_between_normals(normals_a, normals_b):
+    if normals_a.shape != normals_b.shape:
+        raise ValueError("Two normals' arrays have different shape!")
+    angle_list = []
+    for i in range(normals_a.shape[0]):
+        angle_list.append(np.dot(normals_a[i], normals_b[i]) /
+                          (np.linalg.norm(normals_a[i]) * np.linalg.norm(normals_b[i])))
+    angle_array = np.arccos(angle_list)
+    return angle_array
+
+
 if __name__ == "__main__":
-    sphere, min_x, max_x = draw_cornea.draw_sphere(np.array([0.0, 0.0, -5]), 10.0, 500, 500, 10.0, 10.0)
+    sphere, min_x, max_x = draw_cornea.draw_sphere(np.array([0.0, 0.0, -5]), 10.0, 50, 50, 10.0, 10.0)
     kernel_h, kernel_v = np.array([[0.5, 0, -0.5]]), np.array([[-0.5], [0], [0.5]])
-    normal_cal = Marcos_normal(kernel_h, kernel_v, sphere, max_x - min_x, 500)
+    normal_cal = Marcos_normal(kernel_h, kernel_v, sphere, max_x - min_x, 50)
     normal = normal_cal.get_normal()
-    pcd = o3d.geometry.PointCloud()
-    pcd.points = o3d.utility.Vector3dVector(sphere)
-    pcd.normals = o3d.utility.Vector3dVector(normal)
+
+    pcd_marcos, pcd_o3d = o3d.geometry.PointCloud(), o3d.geometry.PointCloud()
+    pcd_marcos.points, pcd_o3d.points = o3d.utility.Vector3dVector(sphere), o3d.utility.Vector3dVector(sphere)
+    pcd_o3d.estimate_normals(search_param=o3d.geometry.KDTreeSearchParamHybrid(radius=0.5, max_nn=30))
+    pcd_o3d.orient_normals_to_align_with_direction(np.array([0.0, 0.0, 1.0]))
+    pcd_o3d.normalize_normals()
+    pcd_marcos.normals = o3d.utility.Vector3dVector(normal)
+
     mesh_frame = o3d.geometry.TriangleMesh.create_coordinate_frame(size=1, origin=[0, 0, 0])
-    o3d.visualization.draw_geometries([pcd, mesh_frame], point_show_normal=True)
+    o3d.visualization.draw_geometries([pcd_marcos, mesh_frame], window_name="Marcos Normal", point_show_normal=True)
+    o3d.visualization.draw_geometries([pcd_o3d, mesh_frame], window_name="Open3D Normal", point_show_normal=True)
+
+    angle_array = angle_between_normals(np.asarray(pcd_marcos.normals), np.asarray(pcd_o3d.normals))
+    print("The mean of two angle array is: {}".format(np.mean(angle_array)))
+    print(angle_array)
 
