@@ -61,14 +61,15 @@ def angle_between_normals(normals_a, normals_b):
 
 
 if __name__ == "__main__":
-    sphere, min_x, max_x = draw_cornea.draw_sphere(np.array([0.0, 0.0, -5]), 10.0, 50, 50, 10.0, 10.0)
+    sphere, min_x, max_x = draw_cornea.draw_sphere(np.array([0.0, 0.0, -5]), 9, 50, 50, 10.0, 10.0)
     kernel_h, kernel_v = np.array([[0.5, 0, -0.5]]), np.array([[-0.5], [0], [0.5]])
     normal_cal = Marcos_normal(kernel_h, kernel_v, sphere, max_x - min_x, 50)
     normal = normal_cal.get_normal()
 
     pcd_marcos, pcd_o3d = o3d.geometry.PointCloud(), o3d.geometry.PointCloud()
     pcd_marcos.points, pcd_o3d.points = o3d.utility.Vector3dVector(sphere), o3d.utility.Vector3dVector(sphere)
-    pcd_o3d.estimate_normals(search_param=o3d.geometry.KDTreeSearchParamHybrid(radius=0.5, max_nn=30))
+    pcd_o3d.estimate_normals(search_param=o3d.geometry.KDTreeSearchParamHybrid(radius=0.5, max_nn=30),
+                             fast_normal_computation=False)
     pcd_o3d.orient_normals_to_align_with_direction(np.array([0.0, 0.0, 1.0]))
     pcd_o3d.normalize_normals()
     pcd_marcos.normals = o3d.utility.Vector3dVector(normal)
