@@ -42,6 +42,27 @@ class RealPCD:
     def get_bot_pcd(self):
         return self.bot_pcd
 
+    def filter_pcd(self, layer='top', method='ls'):
+        if method == 'ls':
+            if layer == 'top':
+                top_potints_mm_s = np.array(self.top_points_mm, copy=True)
+                co_mat = np.zeros((top_potints_mm_s.shape[0], 4))
+                co_mat[:, 0] = top_potints_mm_s[:, 0] * 2
+                co_mat[:, 1] = top_potints_mm_s[:, 1] * 2
+                co_mat[:, 2] = top_potints_mm_s[:, 2] * 2
+                co_mat[:, 3] = 1
+                ordinate = np.zeros((top_potints_mm_s.shape[0], 1))
+                ordinate[:, 0] = np.sum(np.power(top_potints_mm_s, 2), axis=1)
+                res, _, _, _ = np.linalg.lstsq(co_mat, ordinate)
+                rad = np.sqrt(res[0]*res[0] + res[1]*res[1] + res[2]*res[2] + res[3])
+                for i in range(top_potints_mm_s.shape[0]):
+                    top_potints_mm_s[i, 2] = -np.sqrt(np.power(rad, 2) -
+                                                        np.power(top_potints_mm_s[i, 0]-res[0], 2) -
+                                                        np.power(top_potints_mm_s[i, 1]-res[1], 2)) + res[2]
+                smooth_pcd = o3d.geometry.PointCloud()
+                smooth_pcd.points = o3d.utility.Vector3dVector(top_potints_mm_s)
+                return smooth_pcd
+
     def cal_normal(self, layer="top", method="marcos"):
         if method == "marcos":
             kernel_h, kernel_v = np.array([[0.5, 0, -0.5]]), np.array([[-0.5], [0], [0.5]])
@@ -55,12 +76,12 @@ class RealPCD:
                 raise ValueError("Please indicate correct layer's name.")
         elif method == "o3d":
             if layer == "top":
-                self.top_pcd.estimate_normals(search_param=o3d.geometry.KDTreeSearchParamKNN(knn=35),
+                self.top_pcd.estimate_normals(search_param=o3d.geometry.KDTreeSearchParamKNN(knn=100),
                                               fast_normal_computation=False)
                 self.top_pcd.orient_normals_to_align_with_direction(np.array([0.0, 0.0, -1.0]))
                 self.top_pcd.normalize_normals()
             elif layer == "bot":
-                self.bot_pcd.estimate_normals(search_param=o3d.geometry.KDTreeSearchParamKNN(knn=35),
+                self.bot_pcd.estimate_normals(search_param=o3d.geometry.KDTreeSearchParamKNN(knn=100),
                                               fast_normal_computation=False)
                 self.bot_pcd.orient_normals_to_align_with_direction(np.array([0.0, 0.0, -1.0]))
                 self.bot_pcd.normalize_normals()
@@ -72,9 +93,12 @@ class RealPCD:
 
 if __name__ == "__main__":
     seg = RealPCD("../data/seg_res/", [200, 600], 416, 401, 310, 5.81, 5.00, 1.68)
+    smooth_pcd = seg.filter_pcd()
     seg.cal_normal(method='o3d')
     seg.cal_normal(layer='bot', method='o3d')
     top_pcd = seg.get_top_pcd()
     bot_pcd = seg.get_bot_pcd()
-    mesh_frame = o3d.geometry.TriangleMesh.create_coordinate_frame(size=0.06, origin=[0, 0, 0])
-    o3d.visualization.draw_geometries([top_pcd, mesh_frame], window_name="contact len's normal", point_show_normal=True)
+    mesh_frame = o3d.geometry.TriangleMesh.create_coordinate_frame(size=1, origin=[0, 0, 0])
+    smooth_pcd.paint_uniform_color([0, 1, 0])
+    top_pcd.paint_uniform_color([1, 0, 0])
+    o3d.visualization.draw_geometries([smooth_pcd, top_pcd, mesh_frame], window_name="contact len's normal", point_show_normal=False)
