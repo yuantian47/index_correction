@@ -18,6 +18,28 @@ def display_inlier_outlier(pcd, ind):
     o3d.visualization.draw_geometries([inlier_pcd, outlier_pcd, mesh_frame])
 
 
+def downsample_compare(raw_pcd, dp_rate):
+    pcd_dp = raw_pcd.uniform_down_sample(dp_rate)
+    pcd_dp.estimate_normals(search_param=o3d.geometry.KDTreeSearchParamKNN(knn=int(100 / dp_rate)),
+                            fast_normal_computation=False)
+    pcd_dp.orient_normals_to_align_with_direction(np.array([0.0, 0.0, -1.0]))
+    pcd_dp.normalize_normals()
+    raw_normals = np.asarray(raw_pcd.normals)[::dp_rate]
+    dp_normals = np.asarray(pcd_dp.normals)
+    if raw_normals.shape != dp_normals.shape:
+        raise ValueError("Two normals' arrays have different shape!")
+    angle_list = []
+    for i in range(raw_normals.shape[0]):
+        angle_list.append(np.dot(raw_normals[i], dp_normals[i]) /
+                          (np.linalg.norm(raw_normals[i]) * np.linalg.norm(dp_normals[i])))
+    angle_array = np.arccos(np.around(angle_list, 5))
+    mesh_frame = o3d.geometry.TriangleMesh.create_coordinate_frame(size=1, origin=[0, 0, 0])
+    o3d.visualization.draw_geometries([mesh_frame, pcd_dp],
+                                      "Down Sampled Point Cloud with rate " + str(dp_rate),
+                                      point_show_normal=True)
+    return angle_array
+
+
 class RealPCD:
     def __init__(self, directory, idx_range, xdim, ydim, zdim, xlength, ylength, zlength, n1, n2, n3):
         self.directory = directory
@@ -187,8 +209,11 @@ class RealPCD:
 
 if __name__ == "__main__":
     seg = RealPCD("../data/seg_res/", [200, 600], 416, 401, 310, 5.81, 5.00, 1.68, 1, 1.466, 1)
+
+    """Remove the outlier"""
     # seg.edit_pcd()
     seg.remove_outlier()
+
     smooth_pcd = seg.filter_pcd(method='ls')
     seg.cal_normal(method='o3d')
     seg.cal_normal(layer='bot', method='o3d')
@@ -215,3 +240,9 @@ if __name__ == "__main__":
     # top_pcd.normals = o3d.utility.Vector3dVector(seg.refracts_top)
     # o3d.visualization.draw_geometries([top_pcd, mesh_frame], window_name="contact lens ray trace",
     #                                   point_show_normal=True)
+
+    """Down sample the real data"""
+    for i in range(2, 10, 2):
+        diff_angle_arr = downsample_compare(top_pcd, i)
+        print("The mean of two marcos angle array is: {} + {}".format(np.mean(diff_angle_arr),
+                                                                      np.std(diff_angle_arr)))
