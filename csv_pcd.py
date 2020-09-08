@@ -83,7 +83,7 @@ class RealPCD:
         else:
             raise ValueError("Please input vaild layer's name.")
 
-    def remove_outlier(self, layer='top', method='statistical', neighbors=100, std_ratio=2.0, radius=0.1):
+    def remove_outlier(self, layer='top', method='statistical', neighbors=100, std_ratio=0.5, radius=0.1):
         if layer == 'top':
             if method == 'statistical':
                 cl, ind = self.top_pcd.remove_statistical_outlier(nb_neighbors=neighbors, std_ratio=std_ratio)
@@ -93,6 +93,15 @@ class RealPCD:
                 raise ValueError("Please input valid outlier removal method.")
             display_inlier_outlier(self.top_pcd, ind)
             self.top_pcd = self.top_pcd.select_by_index(ind)
+        elif layer == 'bot':
+            if method == 'statistical':
+                cl, ind = self.bot_pcd.remove_statistical_outlier(nb_neighbors=neighbors, std_ratio=std_ratio)
+            elif method == 'radius':
+                cl, ind = self.bot_pcd.remove_radius_outlier(nb_points=neighbors, radius=radius)
+            else:
+                raise ValueError("Please input valid outlier removal method.")
+            display_inlier_outlier(self.bot_pcd, ind)
+            self.bot_pcd = self.bot_pcd.select_by_index(ind)
         else:
             raise ValueError("Please input valid layer's name.")
 
@@ -206,13 +215,36 @@ class RealPCD:
         else:
             raise ValueError("The layer input: " + layer + " does not exist.")
 
+    def gen_mesh(self, layer='top', method='poisson'):
+        if method == 'poisson':
+            if layer == 'top':
+                mesh = \
+                o3d.geometry.TriangleMesh.create_from_point_cloud_poisson(self.top_pcd, depth=8, width=0, scale=1.1,
+                                                                          linear_fit=False)[0]
+                bbox = self.top_pcd.get_axis_aligned_bounding_box()
+            elif layer == 'bot':
+                mesh = \
+                o3d.geometry.TriangleMesh.create_from_point_cloud_poisson(self.bot_pcd, depth=8, width=0, scale=1.1,
+                                                                          linear_fit=False)[0]
+                bbox = self.bot_pcd.get_axis_aligned_bounding_box()
+            else:
+                raise ValueError('Please input valid layer name.')
+            mesh = mesh.crop(bbox)
+            mesh.paint_uniform_color([0.2, 0.5, 0.0])
+            tris = np.asarray(mesh.triangles)
+            mesh_frame = o3d.geometry.TriangleMesh.create_coordinate_frame(size=1, origin=[0, 0, 0])
+            o3d.visualization.draw_geometries([mesh, self.bot_pcd, mesh_frame])
+        else:
+            raise ValueError("Please input vaild mesh generation method.")
+
 
 if __name__ == "__main__":
-    seg = RealPCD("../data/seg_res/", [200, 600], 416, 401, 310, 5.81, 5.00, 1.68, 1, 1.466, 1)
+    seg = RealPCD("../data/seg_res/seg_res_calib_760/", [200, 600], 416, 401, 310, 5.73, 5.025, 1.68, 1, 1.466, 1)
 
     """Remove the outlier"""
     # seg.edit_pcd()
-    seg.remove_outlier()
+    seg.remove_outlier(layer='top')
+    seg.remove_outlier(layer='bot')
 
     smooth_pcd = seg.filter_pcd(method='ls')
     seg.cal_normal(method='o3d')
@@ -240,9 +272,10 @@ if __name__ == "__main__":
     # top_pcd.normals = o3d.utility.Vector3dVector(seg.refracts_top)
     # o3d.visualization.draw_geometries([top_pcd, mesh_frame], window_name="contact lens ray trace",
     #                                   point_show_normal=True)
+    seg.gen_mesh(layer='bot')
 
     """Down sample the real data"""
-    for i in range(2, 10, 2):
+    for i in range(2, 8, 2):
         diff_angle_arr = downsample_compare(top_pcd, i)
         print("The mean of two marcos angle array is: {} + {}".format(np.mean(diff_angle_arr),
                                                                       np.std(diff_angle_arr)))
