@@ -43,7 +43,7 @@ def downsample_compare(raw_pcd, dp_rate):
 def intersect_points_layer(mesh, rays, top_pcd):
     corr_pts = []
     new_pts = []
-    top_pts = np.asarray(top_pcd.points)[::1000]
+    top_pts = np.asarray(top_pcd.points)[::200]
     mesh_pts = np.asarray(mesh.vertices)
     tidx_arr = np.asarray(mesh.triangles)
     for j in tqdm(range(top_pts.shape[0])):
@@ -149,7 +149,7 @@ class RealPCD:
     def get_bot_pcd(self):
         return self.bot_pcd
 
-    def filter_pcd(self, layer='top', method='lms'):
+    def filter_pcd(self, layer='top', method='lms', corr_bot=None):
         if method == 'ls':
             if layer == 'top':
                 top_potints_mm_s = np.array(np.asarray(self.top_pcd.points), copy=True)
@@ -175,7 +175,31 @@ class RealPCD:
                 smooth_pcd.orient_normals_to_align_with_direction(np.array([0.0, 0.0, -1.0]))
                 smooth_pcd.normalize_normals()
                 return smooth_pcd
-            if layer == 'bot':
+            elif layer == 'corr_bot' and corr_bot is not None:
+                corr_potints_mm_s = np.array(np.asarray(bot_pcd.points), copy=True)
+                co_mat = np.zeros((corr_potints_mm_s.shape[0], 4))
+                co_mat[:, 0] = corr_potints_mm_s[:, 0] * 2
+                co_mat[:, 1] = corr_potints_mm_s[:, 1] * 2
+                co_mat[:, 2] = corr_potints_mm_s[:, 2] * 2
+                co_mat[:, 3] = 1
+                ordinate = np.zeros((corr_potints_mm_s.shape[0], 1))
+                ordinate[:, 0] = np.sum(np.power(corr_potints_mm_s, 2), axis=1)
+                res, err, _, _ = np.linalg.lstsq(co_mat, ordinate, rcond=None)
+                print("The error is:", err)
+                rad = np.sqrt(res[0] * res[0] + res[1] * res[1] + res[2] * res[2] + res[3])
+                print("The radius is: {}".format(rad))
+                for i in range(corr_potints_mm_s.shape[0]):
+                    corr_potints_mm_s[i, 2] = -np.sqrt(np.power(rad, 2) -
+                                                      np.power(corr_potints_mm_s[i, 0] - res[0], 2) -
+                                                      np.power(corr_potints_mm_s[i, 1] - res[1], 2)) + res[2]
+                smooth_pcd = o3d.geometry.PointCloud()
+                smooth_pcd.points = o3d.utility.Vector3dVector(corr_potints_mm_s)
+                smooth_pcd.estimate_normals(search_param=o3d.geometry.KDTreeSearchParamKNN(knn=10),
+                                            fast_normal_computation=False)
+                smooth_pcd.orient_normals_to_align_with_direction(np.array([0.0, 0.0, -1.0]))
+                smooth_pcd.normalize_normals()
+                return smooth_pcd
+            elif layer == 'bot':
                 return None
         if method == 'lms':
             if layer == 'top':
@@ -312,12 +336,13 @@ if __name__ == "__main__":
     #                                   point_show_normal=True)
     mesh = seg.gen_mesh(layer='bot')
     new_pts, corr_pts = intersect_points_layer(mesh, seg.refracts_top, top_pcd)
-    pcd_new = o3d.geometry.PointCloud()
-    pcd_new.points = o3d.utility.Vector3dVector(np.asarray(corr_pts))
-    o3d.visualization.draw_geometries([top_pcd, pcd_new, mesh_frame], "test")
     np.save("../data/new_bot_points.npy", new_pts)
-    np.save("../data/corr_bot_points")
-
+    np.save("../data/corr_bot_points.npy", corr_pts)
+    corr_pts = np.load("../data/corr_bot_points.npy", allow_pickle=True)
+    pcd_corr = o3d.geometry.PointCloud()
+    pcd_corr.points = o3d.utility.Vector3dVector(np.asarray(corr_pts))
+    seg.filter_pcd(layer='corr_bot', method='ls', corr_bot=pcd_corr)
+    o3d.visualization.draw_geometries([top_pcd, pcd_corr, mesh_frame], "test")
 
     """Down sample the real data"""
     for i in range(2, 8, 2):
