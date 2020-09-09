@@ -40,6 +40,44 @@ def downsample_compare(raw_pcd, dp_rate):
     return angle_array
 
 
+def intersect_points_layer(mesh, rays, top_pcd):
+    corr_pts = []
+    new_pts = []
+    top_pts = np.asarray(top_pcd.points)[::1000]
+    mesh_pts = np.asarray(mesh.vertices)
+    tidx_arr = np.asarray(mesh.triangles)
+    for j in tqdm(range(top_pts.shape[0])):
+        new_pt = None
+        for i in range(tidx_arr.shape[0]):
+            tri = np.array([mesh_pts[tidx_arr[i][0]], mesh_pts[tidx_arr[i][1]], mesh_pts[tidx_arr[i][2]]])
+            p_0 = np.array(top_pts[j])
+            new_pt = cal_intersect_point(tri, p_0, rays[j])
+            if new_pt is not None:
+                break
+        if new_pt is not None:
+            new_pts.append(new_pt)
+            corr_pt = (new_pt - top_pts[j])/1.466 + top_pts[j]
+            corr_pts.append(corr_pt)
+    return new_pts, corr_pts
+
+
+def cal_intersect_point(tri, p_0, ray):
+    tri, p_0, ray = np.asarray(tri), np.asarray(p_0), np.asarray(ray)
+    u, v = tri[1]-tri[0], tri[2]-tri[0]
+    normal = np.cross(u, v)
+    r_i = np.dot(normal, tri[0]-p_0) / np.dot(normal, ray)
+    if r_i > 1:
+        return None
+    p_i = p_0 + r_i*ray
+    w = p_i - tri[0]
+    s_i = ((np.dot(u, v)*np.dot(w, v)) - (np.dot(v, v)*np.dot(w, u))) / (np.power(np.dot(u, v), 2) - np.dot(u, u)*np.dot(v, v))
+    t_i = ((np.dot(u, v)*np.dot(w, u)) - (np.dot(u, u)*np.dot(w, v))) / (np.power(np.dot(u, v), 2) - np.dot(u, u)*np.dot(v, v))
+    if s_i >= 0 and t_i >= 0 and s_i+t_i <= 1:
+        return p_i
+    else:
+        return None
+
+
 class RealPCD:
     def __init__(self, directory, idx_range, xdim, ydim, zdim, xlength, ylength, zlength, n1, n2, n3):
         self.directory = directory
@@ -194,10 +232,10 @@ class RealPCD:
             raise ValueError("Please indicate correct normal calculation method.")
 
     def ray_tracing(self, incidents, layer='top'):
-        if incidents.shape[0] != self.xdim * self.ydim:
-            raise ValueError("The incident number: " +
-                             str(incidents.shape[0]) +
-                             " is not equal to point cloud's points number: " + str(self.xdim * self.ydim) + ".")
+        # if incidents.shape[0] != self.xdim * self.ydim:
+        #     raise ValueError("The incident number: " +
+        #                      str(incidents.shape[0]) +
+        #                      " is not equal to point cloud's points number: " + str(self.xdim * self.ydim) + ".")
         if layer == 'top':
             points, normals = np.asarray(self.top_pcd.points), np.asarray(self.top_pcd.normals)
             r = self.n1 / self.n2
@@ -231,11 +269,11 @@ class RealPCD:
                 raise ValueError('Please input valid layer name.')
             mesh = mesh.crop(bbox)
             mesh.paint_uniform_color([0.2, 0.5, 0.0])
-            tris = np.asarray(mesh.triangles)
             mesh_frame = o3d.geometry.TriangleMesh.create_coordinate_frame(size=1, origin=[0, 0, 0])
             o3d.visualization.draw_geometries([mesh, self.bot_pcd, mesh_frame])
         else:
             raise ValueError("Please input vaild mesh generation method.")
+        return mesh
 
 
 if __name__ == "__main__":
@@ -268,11 +306,18 @@ if __name__ == "__main__":
     # angle_raw_smoothed = nc.angle_between_normals(np.asarray(top_pcd.normals), np.asarray(smooth_pcd.normals))
     # print("The difference between raw and smoothed pcd: {} +- {}".format(np.mean(angle_raw_smoothed),
     #                                                                      np.std(angle_raw_smoothed)))
-    # seg.ray_tracing(np.repeat([[0.0, 0.0, 1.0]], np.asarray(top_pcd.points).shape[0], axis=0))
+    seg.ray_tracing(np.repeat([[0.0, 0.0, 1.0]], np.asarray(top_pcd.points).shape[0], axis=0))
     # top_pcd.normals = o3d.utility.Vector3dVector(seg.refracts_top)
     # o3d.visualization.draw_geometries([top_pcd, mesh_frame], window_name="contact lens ray trace",
     #                                   point_show_normal=True)
-    seg.gen_mesh(layer='bot')
+    mesh = seg.gen_mesh(layer='bot')
+    new_pts, corr_pts = intersect_points_layer(mesh, seg.refracts_top, top_pcd)
+    pcd_new = o3d.geometry.PointCloud()
+    pcd_new.points = o3d.utility.Vector3dVector(np.asarray(corr_pts))
+    o3d.visualization.draw_geometries([top_pcd, pcd_new, mesh_frame], "test")
+    np.save("../data/new_bot_points.npy", new_pts)
+    np.save("../data/corr_bot_points")
+
 
     """Down sample the real data"""
     for i in range(2, 8, 2):
