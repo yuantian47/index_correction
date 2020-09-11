@@ -5,7 +5,6 @@ from tqdm import tqdm
 import padasip as pa
 
 import normal_calculation as nc
-import ray_tracing as rt
 
 
 # reference: Open3D Point Cloud Outlier Removal
@@ -39,44 +38,6 @@ def downsample_compare(raw_pcd, dp_rate):
                                       "Down Sampled Point Cloud with rate " + str(dp_rate),
                                       point_show_normal=True)
     return angle_array
-
-
-def intersect_points_layer(mesh, rays, top_pcd):
-    corr_pts = []
-    new_pts = []
-    top_pts = np.asarray(top_pcd.points)[::200]
-    mesh_pts = np.asarray(mesh.vertices)
-    tidx_arr = np.asarray(mesh.triangles)
-    for j in tqdm(range(top_pts.shape[0])):
-        new_pt = None
-        for i in range(tidx_arr.shape[0]):
-            tri = np.array([mesh_pts[tidx_arr[i][0]], mesh_pts[tidx_arr[i][1]], mesh_pts[tidx_arr[i][2]]])
-            p_0 = np.array(top_pts[j])
-            new_pt = cal_intersect_point(tri, p_0, rays[j])
-            if new_pt is not None:
-                break
-        if new_pt is not None:
-            new_pts.append(new_pt)
-            corr_pt = (new_pt - top_pts[j])/1.466 + top_pts[j]
-            corr_pts.append(corr_pt)
-    return new_pts, corr_pts
-
-
-def cal_intersect_point(tri, p_0, ray):
-    tri, p_0, ray = np.asarray(tri), np.asarray(p_0), np.asarray(ray)
-    u, v = tri[1]-tri[0], tri[2]-tri[0]
-    normal = np.cross(u, v)
-    r_i = np.dot(normal, tri[0]-p_0) / np.dot(normal, ray)
-    if r_i > 1:
-        return None
-    p_i = p_0 + r_i*ray
-    w = p_i - tri[0]
-    s_i = ((np.dot(u, v)*np.dot(w, v)) - (np.dot(v, v)*np.dot(w, u))) / (np.power(np.dot(u, v), 2) - np.dot(u, u)*np.dot(v, v))
-    t_i = ((np.dot(u, v)*np.dot(w, u)) - (np.dot(u, u)*np.dot(w, v))) / (np.power(np.dot(u, v), 2) - np.dot(u, u)*np.dot(v, v))
-    if s_i >= 0 and t_i >= 0 and s_i+t_i <= 1:
-        return p_i
-    else:
-        return None
 
 
 class RealPCD:
@@ -122,7 +83,7 @@ class RealPCD:
         else:
             raise ValueError("Please input vaild layer's name.")
 
-    def remove_outlier(self, layer='top', method='statistical', neighbors=100, std_ratio=0.5, radius=0.1):
+    def remove_outlier(self, layer='top', method='statistical', neighbors=100, std_ratio=2.0, radius=0.1):
         if layer == 'top':
             if method == 'statistical':
                 cl, ind = self.top_pcd.remove_statistical_outlier(nb_neighbors=neighbors, std_ratio=std_ratio)
@@ -132,15 +93,6 @@ class RealPCD:
                 raise ValueError("Please input valid outlier removal method.")
             display_inlier_outlier(self.top_pcd, ind)
             self.top_pcd = self.top_pcd.select_by_index(ind)
-        elif layer == 'bot':
-            if method == 'statistical':
-                cl, ind = self.bot_pcd.remove_statistical_outlier(nb_neighbors=neighbors, std_ratio=std_ratio)
-            elif method == 'radius':
-                cl, ind = self.bot_pcd.remove_radius_outlier(nb_points=neighbors, radius=radius)
-            else:
-                raise ValueError("Please input valid outlier removal method.")
-            display_inlier_outlier(self.bot_pcd, ind)
-            self.bot_pcd = self.bot_pcd.select_by_index(ind)
         else:
             raise ValueError("Please input valid layer's name.")
 
@@ -150,7 +102,7 @@ class RealPCD:
     def get_bot_pcd(self):
         return self.bot_pcd
 
-    def filter_pcd(self, layer='top', method='lms', corr_bot=None):
+    def filter_pcd(self, layer='top', method='lms'):
         if method == 'ls':
             if layer == 'top':
                 top_potints_mm_s = np.array(np.asarray(self.top_pcd.points), copy=True)
@@ -176,31 +128,7 @@ class RealPCD:
                 smooth_pcd.orient_normals_to_align_with_direction(np.array([0.0, 0.0, -1.0]))
                 smooth_pcd.normalize_normals()
                 return smooth_pcd
-            elif layer == 'corr_bot' and corr_bot is not None:
-                corr_potints_mm_s = np.array(np.asarray(bot_pcd.points), copy=True)
-                co_mat = np.zeros((corr_potints_mm_s.shape[0], 4))
-                co_mat[:, 0] = corr_potints_mm_s[:, 0] * 2
-                co_mat[:, 1] = corr_potints_mm_s[:, 1] * 2
-                co_mat[:, 2] = corr_potints_mm_s[:, 2] * 2
-                co_mat[:, 3] = 1
-                ordinate = np.zeros((corr_potints_mm_s.shape[0], 1))
-                ordinate[:, 0] = np.sum(np.power(corr_potints_mm_s, 2), axis=1)
-                res, err, _, _ = np.linalg.lstsq(co_mat, ordinate, rcond=None)
-                print("The error is:", err)
-                rad = np.sqrt(res[0] * res[0] + res[1] * res[1] + res[2] * res[2] + res[3])
-                print("The radius is: {}".format(rad))
-                for i in range(corr_potints_mm_s.shape[0]):
-                    corr_potints_mm_s[i, 2] = -np.sqrt(np.power(rad, 2) -
-                                                      np.power(corr_potints_mm_s[i, 0] - res[0], 2) -
-                                                      np.power(corr_potints_mm_s[i, 1] - res[1], 2)) + res[2]
-                smooth_pcd = o3d.geometry.PointCloud()
-                smooth_pcd.points = o3d.utility.Vector3dVector(corr_potints_mm_s)
-                smooth_pcd.estimate_normals(search_param=o3d.geometry.KDTreeSearchParamKNN(knn=10),
-                                            fast_normal_computation=False)
-                smooth_pcd.orient_normals_to_align_with_direction(np.array([0.0, 0.0, -1.0]))
-                smooth_pcd.normalize_normals()
-                return smooth_pcd
-            elif layer == 'bot':
+            if layer == 'bot':
                 return None
         if method == 'lms':
             if layer == 'top':
@@ -257,10 +185,10 @@ class RealPCD:
             raise ValueError("Please indicate correct normal calculation method.")
 
     def ray_tracing(self, incidents, layer='top'):
-        # if incidents.shape[0] != self.xdim * self.ydim:
-        #     raise ValueError("The incident number: " +
-        #                      str(incidents.shape[0]) +
-        #                      " is not equal to point cloud's points number: " + str(self.xdim * self.ydim) + ".")
+        if incidents.shape[0] != self.xdim * self.ydim:
+            raise ValueError("The incident number: " +
+                             str(incidents.shape[0]) +
+                             " is not equal to point cloud's points number: " + str(self.xdim * self.ydim) + ".")
         if layer == 'top':
             points, normals = np.asarray(self.top_pcd.points), np.asarray(self.top_pcd.normals)
             r = self.n1 / self.n2
@@ -278,36 +206,13 @@ class RealPCD:
         else:
             raise ValueError("The layer input: " + layer + " does not exist.")
 
-    def gen_mesh(self, layer='top', method='poisson'):
-        if method == 'poisson':
-            if layer == 'top':
-                mesh = \
-                o3d.geometry.TriangleMesh.create_from_point_cloud_poisson(self.top_pcd, depth=8, width=0, scale=1.1,
-                                                                          linear_fit=False)[0]
-                bbox = self.top_pcd.get_axis_aligned_bounding_box()
-            elif layer == 'bot':
-                mesh = \
-                o3d.geometry.TriangleMesh.create_from_point_cloud_poisson(self.bot_pcd, depth=8, width=0, scale=1.1,
-                                                                          linear_fit=False)[0]
-                bbox = self.bot_pcd.get_axis_aligned_bounding_box()
-            else:
-                raise ValueError('Please input valid layer name.')
-            mesh = mesh.crop(bbox)
-            mesh.paint_uniform_color([0.2, 0.5, 0.0])
-            mesh_frame = o3d.geometry.TriangleMesh.create_coordinate_frame(size=1, origin=[0, 0, 0])
-            o3d.visualization.draw_geometries([mesh, self.bot_pcd, mesh_frame])
-        else:
-            raise ValueError("Please input vaild mesh generation method.")
-        return mesh
-
 
 if __name__ == "__main__":
-    seg = RealPCD("../data/seg_res/seg_res_calib_760/", [200, 600], 416, 401, 310, 5.73, 5.025, 1.68, 1, 1.466, 1)
+    seg = RealPCD("../data/seg_res/", [200, 600], 416, 401, 310, 5.81, 5.00, 1.68, 1, 1.466, 1)
 
     """Remove the outlier"""
     # seg.edit_pcd()
-    seg.remove_outlier(layer='top')
-    seg.remove_outlier(layer='bot')
+    seg.remove_outlier()
 
     smooth_pcd = seg.filter_pcd(method='ls')
     seg.cal_normal(method='o3d')
@@ -318,44 +223,26 @@ if __name__ == "__main__":
     smooth_pcd.paint_uniform_color([0, 1, 0])
     top_pcd.paint_uniform_color([1, 0, 0])
     bot_pcd.paint_uniform_color([0, 0, 1])
-    # o3d.visualization.draw_geometries([top_pcd, bot_pcd, mesh_frame], window_name="contact lens two layers",
-    #                                   point_show_normal=False)
+    o3d.visualization.draw_geometries([top_pcd, bot_pcd, mesh_frame], window_name="contact lens two layers",
+                                      point_show_normal=False)
     o3d.visualization.draw_geometries([smooth_pcd, top_pcd, mesh_frame], window_name="contact lens compare",
                                       point_show_normal=False)
-
-    # top_pcd_dp = top_pcd.voxel_down_sample(0.05)
-    # smooth_pcd_dp = smooth_pcd.voxel_down_sample(0.05)
-    # o3d.visualization.draw_geometries([top_pcd_dp, mesh_frame], window_name="raw contact lens normal (Open3D)",
-    #                                   point_show_normal=True)
-    # o3d.visualization.draw_geometries([smooth_pcd_dp, mesh_frame], window_name="smoothed contact lens normal (Open3D)",
-    #                                   point_show_normal=True)
-
+    top_pcd_dp = top_pcd.voxel_down_sample(0.05)
+    smooth_pcd_dp = smooth_pcd.voxel_down_sample(0.05)
+    o3d.visualization.draw_geometries([top_pcd_dp, mesh_frame], window_name="raw contact lens normal (Open3D)",
+                                      point_show_normal=True)
+    o3d.visualization.draw_geometries([smooth_pcd_dp, mesh_frame], window_name="smoothed contact lens normal (Open3D)",
+                                      point_show_normal=True)
     # angle_raw_smoothed = nc.angle_between_normals(np.asarray(top_pcd.normals), np.asarray(smooth_pcd.normals))
     # print("The difference between raw and smoothed pcd: {} +- {}".format(np.mean(angle_raw_smoothed),
     #                                                                      np.std(angle_raw_smoothed)))
-    seg.ray_tracing(np.repeat([[0.0, 0.0, 1.0]], np.asarray(top_pcd.points).shape[0], axis=0))
+    # seg.ray_tracing(np.repeat([[0.0, 0.0, 1.0]], np.asarray(top_pcd.points).shape[0], axis=0))
     # top_pcd.normals = o3d.utility.Vector3dVector(seg.refracts_top)
     # o3d.visualization.draw_geometries([top_pcd, mesh_frame], window_name="contact lens ray trace",
     #                                   point_show_normal=True)
 
-    # rays = rt.ray_tracing(np.asarray(smooth_pcd.points),
-    #                       np.asarray(smooth_pcd.normals),
-    #                       np.repeat([[0.0, 0.0, 1.0]], np.asarray(smooth_pcd.points).shape[0], axis=0),
-    #                       1.0, 1.466)
-    #
-    mesh = seg.gen_mesh(layer='bot')
-    # # new_pts, corr_pts = intersect_points_layer(mesh, seg.refracts_top, top_pcd)
-    # new_pts, corr_pts = intersect_points_layer(mesh, rays, smooth_pcd)
-    # np.save("../data/new_bot_points_s.npy", new_pts)
-    # np.save("../data/corr_bot_points_s.npy", corr_pts)
-    corr_pts = np.load("../data/corr_bot_points_s.npy", allow_pickle=True)
-    pcd_corr = o3d.geometry.PointCloud()
-    pcd_corr.points = o3d.utility.Vector3dVector(np.asarray(corr_pts))
-    seg.filter_pcd(layer='corr_bot', method='ls', corr_bot=pcd_corr)
-    o3d.visualization.draw_geometries([top_pcd, pcd_corr, mesh_frame], "test")
-
-    # """Down sample the real data"""
-    # for i in range(2, 8, 2):
-    #     diff_angle_arr = downsample_compare(top_pcd, i)
-    #     print("The mean of two marcos angle array is: {} + {}".format(np.mean(diff_angle_arr),
-    #                                                                   np.std(diff_angle_arr)))
+    """Down sample the real data"""
+    for i in range(2, 10, 2):
+        diff_angle_arr = downsample_compare(top_pcd, i)
+        print("The mean of two marcos angle array is: {} + {}".format(np.mean(diff_angle_arr),
+                                                                      np.std(diff_angle_arr)))
