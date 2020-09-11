@@ -5,6 +5,7 @@ from tqdm import tqdm
 import padasip as pa
 
 import normal_calculation as nc
+import ray_tracing as rt
 
 
 # reference: Open3D Point Cloud Outlier Removal
@@ -317,16 +318,18 @@ if __name__ == "__main__":
     smooth_pcd.paint_uniform_color([0, 1, 0])
     top_pcd.paint_uniform_color([1, 0, 0])
     bot_pcd.paint_uniform_color([0, 0, 1])
-    o3d.visualization.draw_geometries([top_pcd, bot_pcd, mesh_frame], window_name="contact lens two layers",
-                                      point_show_normal=False)
+    # o3d.visualization.draw_geometries([top_pcd, bot_pcd, mesh_frame], window_name="contact lens two layers",
+    #                                   point_show_normal=False)
     o3d.visualization.draw_geometries([smooth_pcd, top_pcd, mesh_frame], window_name="contact lens compare",
                                       point_show_normal=False)
-    top_pcd_dp = top_pcd.voxel_down_sample(0.05)
-    smooth_pcd_dp = smooth_pcd.voxel_down_sample(0.05)
-    o3d.visualization.draw_geometries([top_pcd_dp, mesh_frame], window_name="raw contact lens normal (Open3D)",
-                                      point_show_normal=True)
-    o3d.visualization.draw_geometries([smooth_pcd_dp, mesh_frame], window_name="smoothed contact lens normal (Open3D)",
-                                      point_show_normal=True)
+
+    # top_pcd_dp = top_pcd.voxel_down_sample(0.05)
+    # smooth_pcd_dp = smooth_pcd.voxel_down_sample(0.05)
+    # o3d.visualization.draw_geometries([top_pcd_dp, mesh_frame], window_name="raw contact lens normal (Open3D)",
+    #                                   point_show_normal=True)
+    # o3d.visualization.draw_geometries([smooth_pcd_dp, mesh_frame], window_name="smoothed contact lens normal (Open3D)",
+    #                                   point_show_normal=True)
+
     # angle_raw_smoothed = nc.angle_between_normals(np.asarray(top_pcd.normals), np.asarray(smooth_pcd.normals))
     # print("The difference between raw and smoothed pcd: {} +- {}".format(np.mean(angle_raw_smoothed),
     #                                                                      np.std(angle_raw_smoothed)))
@@ -334,18 +337,25 @@ if __name__ == "__main__":
     # top_pcd.normals = o3d.utility.Vector3dVector(seg.refracts_top)
     # o3d.visualization.draw_geometries([top_pcd, mesh_frame], window_name="contact lens ray trace",
     #                                   point_show_normal=True)
+
+    # rays = rt.ray_tracing(np.asarray(smooth_pcd.points),
+    #                       np.asarray(smooth_pcd.normals),
+    #                       np.repeat([[0.0, 0.0, 1.0]], np.asarray(smooth_pcd.points).shape[0], axis=0),
+    #                       1.0, 1.466)
+    #
     mesh = seg.gen_mesh(layer='bot')
-    new_pts, corr_pts = intersect_points_layer(mesh, seg.refracts_top, top_pcd)
-    np.save("../data/new_bot_points.npy", new_pts)
-    np.save("../data/corr_bot_points.npy", corr_pts)
-    corr_pts = np.load("../data/corr_bot_points.npy", allow_pickle=True)
+    # # new_pts, corr_pts = intersect_points_layer(mesh, seg.refracts_top, top_pcd)
+    # new_pts, corr_pts = intersect_points_layer(mesh, rays, smooth_pcd)
+    # np.save("../data/new_bot_points_s.npy", new_pts)
+    # np.save("../data/corr_bot_points_s.npy", corr_pts)
+    corr_pts = np.load("../data/corr_bot_points_s.npy", allow_pickle=True)
     pcd_corr = o3d.geometry.PointCloud()
     pcd_corr.points = o3d.utility.Vector3dVector(np.asarray(corr_pts))
     seg.filter_pcd(layer='corr_bot', method='ls', corr_bot=pcd_corr)
     o3d.visualization.draw_geometries([top_pcd, pcd_corr, mesh_frame], "test")
 
-    """Down sample the real data"""
-    for i in range(2, 8, 2):
-        diff_angle_arr = downsample_compare(top_pcd, i)
-        print("The mean of two marcos angle array is: {} + {}".format(np.mean(diff_angle_arr),
-                                                                      np.std(diff_angle_arr)))
+    # """Down sample the real data"""
+    # for i in range(2, 8, 2):
+    #     diff_angle_arr = downsample_compare(top_pcd, i)
+    #     print("The mean of two marcos angle array is: {} + {}".format(np.mean(diff_angle_arr),
+    #                                                                   np.std(diff_angle_arr)))
