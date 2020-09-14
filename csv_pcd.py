@@ -111,27 +111,28 @@ class RealPCD:
     def get_bot_pcd(self):
         return self.bot_pcd
 
-    def filter_pcd(self, layer='top', method='lms'):
+    def pcd_fit_sphere(self, layer='top', method='lms'):
         if method == 'ls':
             if layer == 'top':
-                top_potints_mm_s = np.array(np.asarray(self.top_pcd.points), copy=True)
-                co_mat = np.zeros((top_potints_mm_s.shape[0], 4))
-                co_mat[:, 0] = top_potints_mm_s[:, 0] * 2
-                co_mat[:, 1] = top_potints_mm_s[:, 1] * 2
-                co_mat[:, 2] = top_potints_mm_s[:, 2] * 2
+                top_points_mm_s = np.array(np.asarray(self.top_pcd.points), copy=True)
+                co_mat = np.zeros((top_points_mm_s.shape[0], 4))
+                co_mat[:, 0] = top_points_mm_s[:, 0] * 2
+                co_mat[:, 1] = top_points_mm_s[:, 1] * 2
+                co_mat[:, 2] = top_points_mm_s[:, 2] * 2
                 co_mat[:, 3] = 1
-                ordinate = np.zeros((top_potints_mm_s.shape[0], 1))
-                ordinate[:, 0] = np.sum(np.power(top_potints_mm_s, 2), axis=1)
+                ordinate = np.zeros((top_points_mm_s.shape[0], 1))
+                ordinate[:, 0] = np.sum(np.power(top_points_mm_s, 2), axis=1)
                 res, err, _, _ = np.linalg.lstsq(co_mat, ordinate, rcond=None)
                 print("The error is:", err)
                 rad = np.sqrt(res[0] * res[0] + res[1] * res[1] + res[2] * res[2] + res[3])
                 print("The radius is: {}".format(rad))
-                for i in range(top_potints_mm_s.shape[0]):
-                    top_potints_mm_s[i, 2] = -np.sqrt(np.power(rad, 2) -
-                                                      np.power(top_potints_mm_s[i, 0] - res[0], 2) -
-                                                      np.power(top_potints_mm_s[i, 1] - res[1], 2)) + res[2]
+                top_points_mm_s = np.array(np.asarray(self.top_points_mm), copy=True)
+                for i in range(top_points_mm_s.shape[0]):
+                    top_points_mm_s[i, 2] = -np.sqrt(np.power(rad, 2) -
+                                                     np.power(top_points_mm_s[i, 0] - res[0], 2) -
+                                                     np.power(top_points_mm_s[i, 1] - res[1], 2)) + res[2]
                 smooth_pcd = o3d.geometry.PointCloud()
-                smooth_pcd.points = o3d.utility.Vector3dVector(top_potints_mm_s)
+                smooth_pcd.points = o3d.utility.Vector3dVector(top_points_mm_s)
                 smooth_pcd.estimate_normals(search_param=o3d.geometry.KDTreeSearchParamKNN(knn=100),
                                             fast_normal_computation=False)
                 smooth_pcd.orient_normals_to_align_with_direction(np.array([0.0, 0.0, -1.0]))
@@ -141,25 +142,25 @@ class RealPCD:
                 return None
         if method == 'lms':
             if layer == 'top':
-                top_potints_mm_s = np.array(np.asarray(self.top_pcd.points), copy=True)
-                desired_vec = np.zeros((top_potints_mm_s.shape[0], 1))
-                desired_vec[:, 0] = np.sum(np.power(top_potints_mm_s, 2), axis=1)
-                input_mat = np.zeros((top_potints_mm_s.shape[0], 4))
-                input_mat[:, 0] = top_potints_mm_s[:, 0] * 2
-                input_mat[:, 1] = top_potints_mm_s[:, 1] * 2
-                input_mat[:, 2] = top_potints_mm_s[:, 2] * 2
+                top_points_mm_s = np.array(np.asarray(self.top_pcd.points), copy=True)
+                desired_vec = np.zeros((top_points_mm_s.shape[0], 1))
+                desired_vec[:, 0] = np.sum(np.power(top_points_mm_s, 2), axis=1)
+                input_mat = np.zeros((top_points_mm_s.shape[0], 4))
+                input_mat[:, 0] = top_points_mm_s[:, 0] * 2
+                input_mat[:, 1] = top_points_mm_s[:, 1] * 2
+                input_mat[:, 2] = top_points_mm_s[:, 2] * 2
                 input_mat[:, 3] = 1
                 filter = pa.filters.FilterLMS(n=4, mu=0.005, w="random")
                 _, _, res_arr = filter.run(desired_vec, input_mat)
                 res = res_arr[-1]
                 rad = np.sqrt(res[0] * res[0] + res[1] * res[1] + res[2] * res[2] + res[3])
                 print("The radius is: {}".format(rad))
-                for i in range(top_potints_mm_s.shape[0]):
-                    top_potints_mm_s[i, 2] = -np.sqrt(np.power(rad, 2) -
-                                                      np.power(top_potints_mm_s[i, 0] - res[0], 2) -
-                                                      np.power(top_potints_mm_s[i, 1] - res[1], 2)) + res[2]
+                for i in range(top_points_mm_s.shape[0]):
+                    top_points_mm_s[i, 2] = -np.sqrt(np.power(rad, 2) -
+                                                      np.power(top_points_mm_s[i, 0] - res[0], 2) -
+                                                      np.power(top_points_mm_s[i, 1] - res[1], 2)) + res[2]
                 smooth_pcd = o3d.geometry.PointCloud()
-                smooth_pcd.points = o3d.utility.Vector3dVector(top_potints_mm_s)
+                smooth_pcd.points = o3d.utility.Vector3dVector(top_points_mm_s)
                 smooth_pcd.estimate_normals(search_param=o3d.geometry.KDTreeSearchParamKNN(knn=100),
                                             fast_normal_computation=False)
                 smooth_pcd.orient_normals_to_align_with_direction(np.array([0.0, 0.0, -1.0]))
@@ -222,9 +223,8 @@ if __name__ == "__main__":
     """Remove the outlier"""
     # seg.edit_pcd()
     seg.remove_outlier(layer='top')
-    seg.remove_outlier(layer='bot')
 
-    smooth_pcd = seg.filter_pcd(method='ls')
+    smooth_pcd = seg.pcd_fit_sphere(method='ls')
     seg.cal_normal(method='o3d')
     seg.cal_normal(layer='bot', method='o3d')
     top_pcd = seg.get_top_pcd()
