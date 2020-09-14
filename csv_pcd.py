@@ -83,7 +83,7 @@ class RealPCD:
         else:
             raise ValueError("Please input vaild layer's name.")
 
-    def remove_outlier(self, layer='top', method='statistical', neighbors=100, std_ratio=2.0, radius=0.1):
+    def remove_outlier(self, layer='top', method='statistical', neighbors=100, std_ratio=0.5, radius=0.1):
         if layer == 'top':
             if method == 'statistical':
                 cl, ind = self.top_pcd.remove_statistical_outlier(nb_neighbors=neighbors, std_ratio=std_ratio)
@@ -93,6 +93,15 @@ class RealPCD:
                 raise ValueError("Please input valid outlier removal method.")
             display_inlier_outlier(self.top_pcd, ind)
             self.top_pcd = self.top_pcd.select_by_index(ind)
+        elif layer == 'bot':
+            if method == 'statistical':
+                cl, ind = self.bot_pcd.remove_statistical_outlier(nb_neighbors=neighbors, std_ratio=std_ratio)
+            elif method == 'radius':
+                cl, ind = self.bot_pcd.remove_radius_outlier(nb_points=neighbors, radius=radius)
+            else:
+                raise ValueError("Please input valid outlier removal method.")
+            display_inlier_outlier(self.bot_pcd, ind)
+            self.bot_pcd = self.bot_pcd.select_by_index(ind)
         else:
             raise ValueError("Please input valid layer's name.")
 
@@ -208,11 +217,12 @@ class RealPCD:
 
 
 if __name__ == "__main__":
-    seg = RealPCD("../data/seg_res/", [200, 600], 416, 401, 310, 5.81, 5.00, 1.68, 1, 1.466, 1)
+    seg = RealPCD("../data/seg_res/seg_res_calib_760/", [200, 600], 416, 401, 310, 5.73, 5.0, 1.68, 1, 1.466, 1)
 
     """Remove the outlier"""
     # seg.edit_pcd()
-    seg.remove_outlier()
+    seg.remove_outlier(layer='top')
+    seg.remove_outlier(layer='bot')
 
     smooth_pcd = seg.filter_pcd(method='ls')
     seg.cal_normal(method='o3d')
@@ -242,7 +252,7 @@ if __name__ == "__main__":
     #                                   point_show_normal=True)
 
     """Down sample the real data"""
-    for i in range(2, 10, 2):
+    for i in range(2, 8, 2):
         diff_angle_arr = downsample_compare(top_pcd, i)
         print("The mean of two marcos angle array is: {} + {}".format(np.mean(diff_angle_arr),
                                                                       np.std(diff_angle_arr)))
