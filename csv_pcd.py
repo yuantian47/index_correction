@@ -54,7 +54,9 @@ class RealPCD:
         self.corrected_bot_pcd = o3d.geometry.PointCloud()
         self.n1, self.n2, self.n3 = n1, n2, n3
         self.refracts_top = np.zeros((self.xdim * self.ydim, 3))
+        self.refracts_raw_top = None
         self.refracts_bot = np.zeros((self.xdim * self.ydim, 3))
+        self.top_ind, self.bot_ind, self.corr_bot_ind = None, None, None
         point_idx = 0
         for i in tqdm(range(self.idx_range[0], self.idx_range[1] + 1)):
             top_seg_raw = np.array(pd.read_csv(self.directory + "result_top_" + str(i) + ".csv", header=None))
@@ -89,31 +91,32 @@ class RealPCD:
     def remove_outlier(self, layer='top', method='statistical', neighbors=100, std_ratio=0.5, radius=0.1):
         if layer == 'top':
             if method == 'statistical':
-                cl, ind = self.top_pcd.remove_statistical_outlier(nb_neighbors=neighbors, std_ratio=std_ratio)
+                cl, self.top_ind = self.top_pcd.remove_statistical_outlier(nb_neighbors=neighbors, std_ratio=std_ratio)
             elif method == 'radius':
-                cl, ind = self.top_pcd.remove_radius_outlier(nb_points=neighbors, radius=radius)
+                cl, self.top_ind = self.top_pcd.remove_radius_outlier(nb_points=neighbors, radius=radius)
             else:
                 raise ValueError("Please input valid outlier removal method.")
-            display_inlier_outlier(self.top_pcd, ind)
-            self.top_pcd = self.top_pcd.select_by_index(ind)
+            display_inlier_outlier(self.top_pcd, self.top_ind)
+            self.top_pcd = self.top_pcd.select_by_index(self.top_ind)
         elif layer == 'corrected_bot':
             if method == 'statistical':
-                cl, ind = self.corrected_bot_pcd.remove_statistical_outlier(nb_neighbors=neighbors, std_ratio=std_ratio)
+                cl, self.corr_bot_ind = self.corrected_bot_pcd.remove_statistical_outlier(nb_neighbors=neighbors,
+                                                                                          std_ratio=std_ratio)
             elif method == 'radius':
-                cl, ind = self.corrected_bot_pcd.remove_radius_outlier(nb_points=neighbors, radius=radius)
+                cl, self.corr_bot_ind = self.corrected_bot_pcd.remove_radius_outlier(nb_points=neighbors, radius=radius)
             else:
                 raise ValueError("Please input valid outlier removal method.")
-            display_inlier_outlier(self.corrected_bot_pcd, ind)
-            self.corrected_bot_pcd = self.corrected_bot_pcd.select_by_index(ind)
+            display_inlier_outlier(self.corrected_bot_pcd, self.corr_bot_ind)
+            self.corrected_bot_pcd = self.corrected_bot_pcd.select_by_index(self.corr_bot_ind)
         elif layer == 'bot':
             if method == 'statistical':
-                cl, ind = self.bot_pcd.remove_statistical_outlier(nb_neighbors=neighbors, std_ratio=std_ratio)
+                cl, self.bot_ind = self.bot_pcd.remove_statistical_outlier(nb_neighbors=neighbors, std_ratio=std_ratio)
             elif method == 'radius':
-                cl, ind = self.bot_pcd.remove_radius_outlier(nb_points=neighbors, radius=radius)
+                cl, self.bot_ind = self.bot_pcd.remove_radius_outlier(nb_points=neighbors, radius=radius)
             else:
                 raise ValueError("Please input valid outlier removal method.")
-            display_inlier_outlier(self.bot_pcd, ind)
-            self.bot_pcd = self.bot_pcd.select_by_index(ind)
+            display_inlier_outlier(self.bot_pcd, self.bot_ind)
+            self.bot_pcd = self.bot_pcd.select_by_index(self.bot_ind)
         else:
             raise ValueError("Please input valid layer's name.")
 
@@ -236,10 +239,10 @@ class RealPCD:
             raise ValueError("Please indicate correct normal calculation method.")
 
     def ray_tracing(self, incidents, layer='top'):
-        if incidents.shape[0] != self.xdim * self.ydim:
-            raise ValueError("The incident number: " +
-                             str(incidents.shape[0]) +
-                             " is not equal to point cloud's points number: " + str(self.xdim * self.ydim) + ".")
+        # if incidents.shape[0] != self.xdim * self.ydim:
+        #     raise ValueError("The incident number: " +
+        #                      str(incidents.shape[0]) +
+        #                      " is not equal to point cloud's points number: " + str(self.xdim * self.ydim) + ".")
         if layer == 'top':
             points, normals = np.asarray(self.top_smooth_pcd.points), np.asarray(self.top_smooth_pcd.normals)
             r = self.n1 / self.n2
@@ -249,6 +252,16 @@ class RealPCD:
                                        (r * c - np.sqrt(1 - np.power(r, 2) * (1 - np.power(c, 2)))) * normals[i]
                 refract_norm = np.linalg.norm(refract)
                 self.refracts_top[i] = refract / refract_norm
+        elif layer == 'raw_top':
+            points, normals = np.asarray(self.top_pcd.points), np.asarray(self.top_pcd.normals)
+            r = self.n1 / self.n2
+            self.refracts_raw_top = np.zeros(points.shape)
+            for i in range(points.shape[0]):
+                c = -np.dot(normals[i], incidents[i])
+                refract = r * incidents[i] + \
+                                       (r * c - np.sqrt(1 - np.power(r, 2) * (1 - np.power(c, 2)))) * normals[i]
+                refract_norm = np.linalg.norm(refract)
+                self.refracts_raw_top[i] = refract / refract_norm
         elif layer == 'bot':
             points, normals = np.asarray(self.bot_smooth_pcd.points), np.asarray(self.bot_smooth_pcd.normals)
             r = self.n2 / self.n3
@@ -261,9 +274,14 @@ class RealPCD:
         else:
             raise ValueError("The layer input: " + layer + " does not exist.")
 
-    def refraction_correction(self):
-        top_points = np.asarray(self.top_smooth_pcd.points)
-        bot_points = np.asarray(self.bot_pcd.points)
+    def refraction_correction(self, raw=False):
+        if raw is False:
+            top_points = np.asarray(self.top_smooth_pcd.points)
+            bot_points = np.asarray(self.bot_pcd.points)
+        else:
+            top_points = np.asarray(self.top_pcd.points)
+            clip_bot_pcd = self.bot_pcd.select_by_index(self.top_ind)
+            bot_points = np.asarray(clip_bot_pcd.points)
         if top_points.shape != bot_points.shape:
             raise ValueError("The two point clouds shape is not same!")
         raw_z_distance = np.absolute(bot_points[:, 2] - top_points[:, 2])
@@ -303,7 +321,7 @@ if __name__ == "__main__":
     seg.remove_outlier(layer='corrected_bot')
     corrected_bot_pcd = seg.get_corrected_bot_pcd()
     o3d.visualization.draw_geometries([top_pcd, corrected_bot_pcd, bot_pcd, mesh_frame],
-                                      window_name="index correction on bottom layer",
+                                      window_name="smooth index correction on bottom layer",
                                       point_show_normal=False)
 
     seg.pcd_fit_sphere(layer='bot', method='ls')
@@ -311,7 +329,22 @@ if __name__ == "__main__":
     bot_smooth_pcd.paint_uniform_color([0, 1, 0])
     corrected_bot_pcd.paint_uniform_color([1, 0, 0])
     o3d.visualization.draw_geometries([corrected_bot_pcd, bot_smooth_pcd, mesh_frame],
-                                      window_name="fit a sphere on bottom layer",
+                                      window_name="smooth fit a sphere on bottom layer",
+                                      point_show_normal=False)
+
+    seg.ray_tracing(np.repeat([[0.0, 0.0, 1.0]], np.asarray(top_pcd.points).shape[0], axis=0), layer="raw_top")
+    seg.refraction_correction(raw=True)
+    corrected_bot_pcd = seg.get_corrected_bot_pcd()
+    o3d.visualization.draw_geometries([top_pcd, corrected_bot_pcd, bot_pcd, mesh_frame],
+                                      window_name="raw index correction on bottom layer",
+                                      point_show_normal=False)
+
+    seg.pcd_fit_sphere(layer='bot', method='ls')
+    bot_smooth_pcd = seg.get_bot_smooth_pcd()
+    bot_smooth_pcd.paint_uniform_color([0, 1, 0])
+    corrected_bot_pcd.paint_uniform_color([1, 0, 0])
+    o3d.visualization.draw_geometries([corrected_bot_pcd, bot_smooth_pcd, mesh_frame],
+                                      window_name="raw fit a sphere on bottom layer",
                                       point_show_normal=False)
 
     # """Down sample the real data"""
