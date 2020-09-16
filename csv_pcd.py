@@ -20,6 +20,7 @@ def display_inlier_outlier(pcd, ind):
 
 def downsample_compare(raw_pcd, dp_rate):
     pcd_dp = raw_pcd.uniform_down_sample(dp_rate)
+    # pcd_dp, unknown_arr, unknow_list = raw_pcd.voxel_down_sample_and_trace(0.02, raw_pcd.get_min_bound(), raw_pcd.get_max_bound())
     pcd_dp.estimate_normals(search_param=o3d.geometry.KDTreeSearchParamKNN(knn=int(100 / dp_rate)),
                             fast_normal_computation=False)
     pcd_dp.orient_normals_to_align_with_direction(np.array([0.0, 0.0, -1.0]))
@@ -104,6 +105,15 @@ class RealPCD:
                 raise ValueError("Please input valid outlier removal method.")
             display_inlier_outlier(self.corrected_bot_pcd, ind)
             self.corrected_bot_pcd = self.corrected_bot_pcd.select_by_index(ind)
+        elif layer == 'bot':
+            if method == 'statistical':
+                cl, ind = self.bot_pcd.remove_statistical_outlier(nb_neighbors=neighbors, std_ratio=std_ratio)
+            elif method == 'radius':
+                cl, ind = self.bot_pcd.remove_radius_outlier(nb_points=neighbors, radius=radius)
+            else:
+                raise ValueError("Please input valid outlier removal method.")
+            display_inlier_outlier(self.bot_pcd, ind)
+            self.bot_pcd = self.bot_pcd.select_by_index(ind)
         else:
             raise ValueError("Please input valid layer's name.")
 
@@ -235,15 +245,19 @@ class RealPCD:
             r = self.n1 / self.n2
             for i in range(points.shape[0]):
                 c = -np.dot(normals[i], incidents[i])
-                self.refracts_top[i] = r * incidents[i] + \
+                refract = r * incidents[i] + \
                                        (r * c - np.sqrt(1 - np.power(r, 2) * (1 - np.power(c, 2)))) * normals[i]
+                refract_norm = np.linalg.norm(refract)
+                self.refracts_top[i] = refract / refract_norm
         elif layer == 'bot':
             points, normals = np.asarray(self.bot_smooth_pcd.points), np.asarray(self.bot_smooth_pcd.normals)
             r = self.n2 / self.n3
             for i in range(points.shape[0]):
                 c = -np.dot(normals[i], incidents[i])
-                self.refracts_bot[i] = r * incidents[i] + \
-                                       (r * c - np.sqrt(1 - np.power(r, 2) * (1 - np.power(c, 2)))) * normals[i]
+                refract = r * incidents[i] + \
+                          (r * c - np.sqrt(1 - np.power(r, 2) * (1 - np.power(c, 2)))) * normals[i]
+                refract_norm = np.linalg.norm(refract)
+                self.refracts_bot[i] = refract / refract_norm
         else:
             raise ValueError("The layer input: " + layer + " does not exist.")
 
@@ -284,11 +298,11 @@ if __name__ == "__main__":
     o3d.visualization.draw_geometries([top_smooth_pcd, top_pcd, mesh_frame], window_name="contact lens compare",
                                       point_show_normal=False)
 
-    seg.ray_tracing(np.repeat([[0.0, 0.0, -1.0]], np.asarray(top_smooth_pcd.points).shape[0], axis=0))
+    seg.ray_tracing(np.repeat([[0.0, 0.0, 1.0]], np.asarray(top_smooth_pcd.points).shape[0], axis=0))
     seg.refraction_correction()
     seg.remove_outlier(layer='corrected_bot')
     corrected_bot_pcd = seg.get_corrected_bot_pcd()
-    o3d.visualization.draw_geometries([top_pcd, corrected_bot_pcd, mesh_frame],
+    o3d.visualization.draw_geometries([top_pcd, corrected_bot_pcd, bot_pcd, mesh_frame],
                                       window_name="index correction on bottom layer",
                                       point_show_normal=False)
 
@@ -300,8 +314,8 @@ if __name__ == "__main__":
                                       window_name="fit a sphere on bottom layer",
                                       point_show_normal=False)
 
-    """Down sample the real data"""
-    for i in range(2, 8, 2):
-        diff_angle_arr = downsample_compare(top_pcd, i)
-        print("The mean of two Open3D angle array is: {} + {}".format(np.mean(diff_angle_arr),
-                                                                      np.std(diff_angle_arr)))
+    # """Down sample the real data"""
+    # for i in range(2, 8, 2):
+    #     diff_angle_arr = downsample_compare(top_pcd, i)
+    #     print("The mean of two Open3D angle array is: {} + {}".format(np.mean(diff_angle_arr),
+    #                                                                   np.std(diff_angle_arr)))
