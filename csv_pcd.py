@@ -278,19 +278,23 @@ class RealPCD:
         if raw is False:
             top_points = np.asarray(self.top_smooth_pcd.points)
             bot_points = np.asarray(self.bot_pcd.points)
+            refracts_top = self.refracts_top
         else:
             top_points = np.asarray(self.top_pcd.points)
             clip_bot_pcd = self.bot_pcd.select_by_index(self.top_ind)
             bot_points = np.asarray(clip_bot_pcd.points)
+            refracts_top = self.refracts_raw_top
         if top_points.shape != bot_points.shape:
             raise ValueError("The two point clouds shape is not same!")
         raw_z_distance = np.absolute(bot_points[:, 2] - top_points[:, 2])
         z_distance = raw_z_distance/self.n2
         ref_vec_arr = np.zeros(bot_points.shape)
         for i in range(ref_vec_arr.shape[0]):
-            ref_vec_arr[i] = z_distance[i] * self.refracts_top[i]
+            ref_vec_arr[i] = z_distance[i] * refracts_top[i]
         corrected_bot_points = top_points + ref_vec_arr
         self.corrected_bot_pcd.points = o3d.utility.Vector3dVector(corrected_bot_points)
+        self.corrected_bot_pcd.estimate_normals(search_param=o3d.geometry.KDTreeSearchParamKNN(knn=100),
+                                                fast_normal_computation=False)
         self.corrected_bot_pcd.paint_uniform_color([0.5, 0.5, 0.0])
 
 
@@ -311,10 +315,10 @@ if __name__ == "__main__":
     top_smooth_pcd.paint_uniform_color([0, 1, 0])
     top_pcd.paint_uniform_color([1, 0, 0])
     bot_pcd.paint_uniform_color([0, 0, 1])
-    o3d.visualization.draw_geometries([top_pcd, bot_pcd, mesh_frame], window_name="contact lens two layers",
-                                      point_show_normal=False)
-    o3d.visualization.draw_geometries([top_smooth_pcd, top_pcd, mesh_frame], window_name="contact lens compare",
-                                      point_show_normal=False)
+    # o3d.visualization.draw_geometries([top_pcd, bot_pcd, mesh_frame], window_name="contact lens two layers",
+    #                                   point_show_normal=False)
+    # o3d.visualization.draw_geometries([top_smooth_pcd, top_pcd, mesh_frame], window_name="contact lens compare",
+    #                                   point_show_normal=False)
 
     seg.ray_tracing(np.repeat([[0.0, 0.0, 1.0]], np.asarray(top_smooth_pcd.points).shape[0], axis=0))
     seg.refraction_correction()
@@ -336,7 +340,7 @@ if __name__ == "__main__":
     seg.refraction_correction(raw=True)
     corrected_bot_pcd = seg.get_corrected_bot_pcd()
     o3d.visualization.draw_geometries([top_pcd, corrected_bot_pcd, bot_pcd, mesh_frame],
-                                      window_name="raw index correction on bottom layer",
+                                      window_name="raw index correction on bottom layer (K=100)",
                                       point_show_normal=False)
 
     seg.pcd_fit_sphere(layer='bot', method='ls')
@@ -344,7 +348,7 @@ if __name__ == "__main__":
     bot_smooth_pcd.paint_uniform_color([0, 1, 0])
     corrected_bot_pcd.paint_uniform_color([1, 0, 0])
     o3d.visualization.draw_geometries([corrected_bot_pcd, bot_smooth_pcd, mesh_frame],
-                                      window_name="raw fit a sphere on bottom layer",
+                                      window_name="raw fit a sphere on bottom layer (K=100)",
                                       point_show_normal=False)
 
     # """Down sample the real data"""
