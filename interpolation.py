@@ -2,6 +2,7 @@ import numpy as np
 import open3d as o3d
 from tqdm import tqdm
 import scipy.interpolate
+import cv2 as cv
 
 import csv_pcd
 
@@ -11,6 +12,7 @@ class Interpolation:
         self.xdim, self.ydim, self.zdim = xdim, ydim, zdim
         self.xlength, self.ylength, self.zlength = xlength, ylength, zlength
         self.n1, self.n2, self.n3 = n1, n2, n3
+        self.idx_range = idx_range
         self.seg = csv_pcd.RealPCD(directory, idx_range, xdim, ydim, zdim, xlength, ylength, zlength, n1, n2, n3)
         self.seg.remove_outlier(layer='top')
         self.seg.pcd_fit_sphere(method='ls')
@@ -29,11 +31,29 @@ class Interpolation:
         o3d.visualization.draw_geometries([self.top_smooth_pcd, self.bot_smooth_pcd, mesh_frame],
                                           window_name="smooth fit a sphere on bottom layer",
                                           point_show_normal=False)
+        self.positions_nd, self.values_nd, self.values_gr = None, None, None
+        self.linearinter, self.gridinter = None, None
 
-    def linear_inter_pairs(self):
+    def grid_inter_pairs(self, imgs_dir):
+        values_gr = np.zeros((self.xdim, self.ydim, self.zdim))
+        print("Building Values Matrix")
+        for i in range(self.idx_range[0], self.idx_range[1] + 1):
+            img = cv.imread(imgs_dir + "0_" + str(i) + "_bscan.png", cv.IMREAD_GRAYSCALE)
+            values_gr[:, i-self.idx_range[0], :] = img.transpose()
+        self.values_gr = values_gr
+        x = np.linspace(0, self.xlength, self.xdim, endpoint=False)
+        y = np.linspace(0, self.ylength, self.ydim, endpoint=False)
+        z = np.linspace(0, self.zlength, self.zdim, endpoint=False)
+        self.gridinter = scipy.interpolate.RegularGridInterpolator((x, y, z),
+                                                                   self.values_gr,
+                                                                   method='linear',
+                                                                   fill_value=0)
+        print("Interpolator Built.")
+
+    def nn_inter_pairs(self):
         positions = np.zeros((self.xdim, self.ydim, self.zdim, 3))
         values = np.zeros((self.xdim, self.ydim, self.zdim, 3))
-        print("Building linear interpolation matrix.")
+        print("Building interpolation matrix.")
         idx_x, idx_y = 0, 0
         top_smooth_points = np.asarray(self.top_smooth_pcd.points)
         bot_smooth_points = np.asarray(self.bot_smooth_pcd.points)
@@ -58,7 +78,9 @@ class Interpolation:
             if idx_x == self.xdim:
                 idx_y += 1
                 idx_x = 0
-        return positions, values
+        self.positions_nd, self.values_nd = positions.reshape(-1, 3), values.reshape(-1, 3)
+        self.linearinter = scipy.interpolate.NearestNDInterpolator(self.positions_nd, self.values_nd)
+        print("Interpolator Built.")
 
     def refract_correction(self, refract, origin, points):
         raw_distance = np.absolute(origin[2] - points[:, 2])
@@ -69,6 +91,6 @@ class Interpolation:
 
 if __name__ == "__main__":
     inter = Interpolation("../data/seg_res/seg_res_calib_760/", [200, 600], 416, 401, 310, 5.73, 5.0, 1.68, 1, 1.466, 1)
-    positions, values = inter.linear_inter_pairs()
-    linearinter = scipy.interpolate.LinearNDInterpolator(positions.reshape(-1, 3), values.reshape(-1, 3), fill_value=-1)
+    inter.nn_inter_pairs()
+    inter.grid_inter_pairs('../data/images/contact_lens_crop_calib_760/')
     print("Program Finished.")
