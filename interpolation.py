@@ -55,13 +55,19 @@ class Interpolation:
         print("Interpolator Built.")
 
     def nn_inter_pairs(self):
-        positions = np.zeros((self.xdim, self.ydim, self.zdim, 3))
-        values = np.zeros((self.xdim, self.ydim, self.zdim, 3))
+        positions = np.zeros(((self.xdim//16), (self.ydim//10)+1, self.zdim, 3))
+        values = np.zeros(((self.xdim//16), (self.ydim//10)+1, self.zdim, 3))
         print("Building interpolation matrix.")
         idx_x, idx_y = 0, 0
         top_smooth_points = np.asarray(self.top_smooth_pcd.points)
         bot_smooth_points = np.asarray(self.bot_smooth_pcd.points)
         for i in tqdm(range(top_smooth_points.shape[0])):
+            if idx_y == 41:
+                break
+            if ((i+1)//(self.xdim+1)) % 10 != 0:
+                continue
+            if ((i+1)%(self.xdim+1)) % 16 != 0:
+                continue
             top_refract = self.seg.refracts_top[i]
             bot_refract = self.seg.refracts_bot[i]
             positions[idx_x, idx_y, :, :2] = top_smooth_points[i][:2]
@@ -79,7 +85,7 @@ class Interpolation:
                 self.refract_correction(bot_refract, bot_smooth_points[i],
                                         positions[idx_x, idx_y, bot_point[0, 0]:, :], self.n3)
             idx_x += 1
-            if idx_x == self.xdim:
+            if idx_x == self.xdim//16:
                 idx_y += 1
                 idx_x = 0
         self.positions_nd, self.values_nd = positions.reshape((-1, 3)), values.reshape((-1, 3))
@@ -116,7 +122,7 @@ if __name__ == "__main__":
                           [200, 600], 416, 401, 310, 5.73, 5.0, 1.68, 1., 1.466, 1.)
     inter.nn_inter_pairs()
     inter.grid_inter_pairs('../data/images/contact_lens_crop_calib_760/')
-    img = inter.reconstruction(100)
+    img = inter.reconstruction(200)
     plt.imshow(img)
     plt.show()
 
