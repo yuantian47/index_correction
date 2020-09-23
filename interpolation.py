@@ -55,46 +55,49 @@ class Interpolation:
         print("Interpolator Built.")
 
     def nn_inter_pairs(self):
-        positions = np.zeros(((self.xdim//16), (self.ydim//10)+1, self.zdim, 3))
-        values = np.zeros(((self.xdim//16), (self.ydim//10)+1, self.zdim, 3))
+        dp_x = 16
+        dp_y = 10
+        dp_z = 10
+        positions = np.zeros(((self.xdim//dp_x), (self.ydim//dp_y)+1, self.zdim//dp_z, 3))
+        values = np.zeros(((self.xdim//dp_x), (self.ydim//dp_y)+1, self.zdim//dp_z, 3))
         print("Building interpolation matrix.")
         idx_x, idx_y = 0, 0
         top_smooth_points = np.asarray(self.top_smooth_pcd.points)
         bot_smooth_points = np.asarray(self.bot_smooth_pcd.points)
+        bot_points = np.asarray(self.seg.bot_points_mm)
         for i in tqdm(range(top_smooth_points.shape[0])):
             if idx_y == 41:
                 break
-            if ((i+1)//(self.xdim+1)) % 10 != 0:
+            if ((i+1)//(self.xdim+1)) % dp_y != 0:
                 continue
-            if ((i+1)%(self.xdim+1)) % 16 != 0:
+            if ((i+1)%(self.xdim+1)) % dp_x != 0:
                 continue
             top_refract = self.seg.refracts_top[i]
             bot_refract = self.seg.refracts_bot[i]
             positions[idx_x, idx_y, :, :2] = top_smooth_points[i][:2]
-            z_positions = np.multiply(np.linspace(0, self.zdim, self.zdim, endpoint=False),
-                                      (float(self.zlength) / self.zdim))
+            z_positions = np.linspace(0, self.zlength, self.zdim//dp_z, endpoint=False)
             positions[idx_x, idx_y, :, 2] = z_positions
             top_point = np.argwhere(z_positions >= top_smooth_points[i][2])
             bot_point = np.argwhere(z_positions >= bot_smooth_points[i][2])
             values[idx_x, idx_y, :, :2] = top_smooth_points[i][:2]
             values[idx_x, idx_y, :top_point[0, 0], 2] = np.linspace(0, top_smooth_points[i][2], top_point[0, 0])
             values[idx_x, idx_y, top_point[0, 0]:bot_point[0, 0], :] = \
-                self.refract_correction(top_refract, top_smooth_points[i],
+                self.refract_correction(top_refract, top_smooth_points[i], top_smooth_points[i],
                                         positions[idx_x, idx_y, top_point[0, 0]:bot_point[0, 0], :], self.n2)
             values[idx_x, idx_y, bot_point[0, 0]:, :] = \
-                self.refract_correction(bot_refract, bot_smooth_points[i],
+                self.refract_correction(bot_refract, bot_points[i], bot_smooth_points[i],
                                         positions[idx_x, idx_y, bot_point[0, 0]:, :], self.n3)
             idx_x += 1
-            if idx_x == self.xdim//16:
+            if idx_x == self.xdim//dp_x:
                 idx_y += 1
                 idx_x = 0
         self.positions_nd, self.values_nd = positions.reshape((-1, 3)), values.reshape((-1, 3))
         # self.nninter = scipy.interpolate.NearestNDInterpolator(self.positions_nd, self.values_nd)
-        self.nninter = scipy.interpolate.LinearNDInterpolator(self.positions_nd, self.values_nd, fill_value=-1)
+        self.nninter = scipy.interpolate.LinearNDInterpolator(self.positions_nd, self.values_nd, fill_value=-1.)
         print("Interpolator Built.")
 
-    def refract_correction(self, refract, origin, points, group_idx):
-        raw_distance = np.absolute(origin[2] - points[:, 2])
+    def refract_correction(self, refract, dis_origin, origin, points, group_idx):
+        raw_distance = np.absolute(dis_origin[2] - points[:, 2])
         distance = raw_distance / group_idx
         corrected_points = origin + (distance.reshape(distance.shape[0], 1) * refract)
         return corrected_points
@@ -111,9 +114,9 @@ class Interpolation:
         top_seg = np.array(pd.read_csv(self.directory + "result_top_" + str(y_idx+200) + ".csv", header=None))
         bot_seg = np.array(pd.read_csv(self.directory + "result_bot_" + str(y_idx+200) + ".csv", header=None))
         for i in range(top_seg.shape[0]):
-            img[415-top_seg[i][0]][top_seg[i][1]] = np.array([255, 0, 0])
+            img[top_seg[i][0]][top_seg[i][1]] = np.array([255, 0, 0])
         for i in range(bot_seg.shape[0]):
-            img[415-bot_seg[i][0]][bot_seg[i][1]] = np.array([0, 255, 0])
+            img[bot_seg[i][0]][bot_seg[i][1]] = np.array([0, 255, 0])
         return img
 
 
@@ -122,7 +125,7 @@ if __name__ == "__main__":
                           [200, 600], 416, 401, 310, 5.73, 5.0, 1.68, 1., 1.466, 1.)
     inter.nn_inter_pairs()
     inter.grid_inter_pairs('../data/images/contact_lens_crop_calib_760/')
-    img = inter.reconstruction(200)
+    img = inter.reconstruction(300)
     plt.imshow(img)
     plt.show()
 
