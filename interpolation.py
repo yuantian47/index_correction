@@ -78,7 +78,7 @@ class Interpolation:
             z_positions = np.linspace(0, self.zlength, self.zdim//dp_z, endpoint=False)
             positions[idx_x, idx_y, :, 2] = z_positions
             top_point = np.argwhere(z_positions >= top_smooth_points[i][2])
-            bot_point = np.argwhere(z_positions >= bot_smooth_points[i][2])
+            bot_point = np.argwhere(z_positions >= bot_points[i][2])
             values[idx_x, idx_y, :, :2] = top_smooth_points[i][:2]
             values[idx_x, idx_y, :top_point[0, 0], 2] = np.linspace(0, top_smooth_points[i][2], top_point[0, 0])
             values[idx_x, idx_y, top_point[0, 0]:bot_point[0, 0], :] = \
@@ -92,7 +92,6 @@ class Interpolation:
                 idx_y += 1
                 idx_x = 0
         self.positions_nd, self.values_nd = positions.reshape((-1, 3)), values.reshape((-1, 3))
-        # self.nninter = scipy.interpolate.NearestNDInterpolator(self.positions_nd, self.values_nd)
         self.nninter = scipy.interpolate.LinearNDInterpolator(self.values_nd, self.positions_nd, fill_value=-1.)
         print("Interpolator Built.")
 
