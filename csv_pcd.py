@@ -64,9 +64,9 @@ class RealPCD:
             top_seg, bot_seg = np.zeros((xdim, 3)), np.zeros((xdim, 3))
             for j in range(xdim):
                 same_x_top = top_seg_raw[list([*np.where(top_seg_raw[:, 0] == j)[0]])]
-                top_seg[j] = np.insert(same_x_top[np.argmax(same_x_top[:, 1])], 1, i)
+                top_seg[j] = np.insert(same_x_top[np.argmax(same_x_top[:, 1])], 1, i-self.idx_range[0])
                 same_x_bot = bot_seg_raw[list([*np.where(bot_seg_raw[:, 0] == j)[0]])]
-                bot_seg[j] = np.insert(same_x_bot[np.argmax(same_x_bot[:, 1])], 1, i)
+                bot_seg[j] = np.insert(same_x_bot[np.argmax(same_x_bot[:, 1])], 1, i-self.idx_range[0])
             top_seg_mm = np.multiply(top_seg, [float(self.xlength) / self.xdim, float(self.ylength) / self.ydim,
                                                float(self.zlength) / self.zdim])
             bot_seg_mm = np.multiply(bot_seg, [float(self.xlength) / self.xdim, float(self.ylength) / self.ydim,
