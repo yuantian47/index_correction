@@ -93,7 +93,7 @@ class Interpolation:
                 idx_x = 0
         self.positions_nd, self.values_nd = positions.reshape((-1, 3)), values.reshape((-1, 3))
         # self.nninter = scipy.interpolate.NearestNDInterpolator(self.positions_nd, self.values_nd)
-        self.nninter = scipy.interpolate.LinearNDInterpolator(self.positions_nd, self.values_nd, fill_value=-1.)
+        self.nninter = scipy.interpolate.LinearNDInterpolator(self.values_nd, self.positions_nd, fill_value=-1.)
         print("Interpolator Built.")
 
     def refract_correction(self, refract, dis_origin, origin, points, group_idx):
@@ -125,7 +125,7 @@ if __name__ == "__main__":
                           [200, 600], 416, 401, 310, 5.73, 5.0, 1.68, 1., 1.466, 1.)
     inter.nn_inter_pairs()
     inter.grid_inter_pairs('../data/images/contact_lens_crop_calib_760/')
-    img = inter.reconstruction(300)
+    img = inter.reconstruction(390)
     plt.imshow(img)
     plt.show()
 
