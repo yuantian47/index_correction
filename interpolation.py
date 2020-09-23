@@ -55,9 +55,9 @@ class Interpolation:
         print("Interpolator Built.")
 
     def nn_inter_pairs(self):
-        dp_x = 16
+        dp_x = 10
         dp_y = 10
-        dp_z = 10
+        dp_z = 1
         positions = np.zeros(((self.xdim//dp_x), (self.ydim//dp_y)+1, self.zdim//dp_z, 3))
         values = np.zeros(((self.xdim//dp_x), (self.ydim//dp_y)+1, self.zdim//dp_z, 3))
         print("Building interpolation matrix.")
@@ -66,7 +66,7 @@ class Interpolation:
         bot_smooth_points = np.asarray(self.bot_smooth_pcd.points)
         bot_points = np.asarray(self.seg.bot_points_mm)
         for i in tqdm(range(top_smooth_points.shape[0])):
-            if idx_y == 41:
+            if idx_y == 81:
                 break
             if ((i+1)//(self.xdim+1)) % dp_y != 0:
                 continue
@@ -110,13 +110,13 @@ class Interpolation:
                 pos = np.multiply([i, y_idx, j],
                                   [self.xlength/self.xdim, self.ylength/self.ydim, self.zlength/self.zdim])
                 img[i][j] = np.uint8(self.gridinter(self.nninter(pos)))
-        img = cv.cvtColor(img, cv.COLOR_GRAY2RGB)
+        img = cv.cvtColor(img.transpose(), cv.COLOR_GRAY2RGB)
         top_seg = np.array(pd.read_csv(self.directory + "result_top_" + str(y_idx+200) + ".csv", header=None))
         bot_seg = np.array(pd.read_csv(self.directory + "result_bot_" + str(y_idx+200) + ".csv", header=None))
         for i in range(top_seg.shape[0]):
-            img[top_seg[i][0]][top_seg[i][1]] = np.array([255, 0, 0])
+            img[top_seg[i][1]][top_seg[i][0]] = np.array([255, 0, 0])
         for i in range(bot_seg.shape[0]):
-            img[bot_seg[i][0]][bot_seg[i][1]] = np.array([0, 255, 0])
+            img[bot_seg[i][1]][bot_seg[i][0]] = np.array([0, 255, 0])
         return img
 
 
@@ -125,7 +125,7 @@ if __name__ == "__main__":
                           [200, 600], 416, 401, 310, 5.73, 5.0, 1.68, 1., 1.466, 1.)
     inter.nn_inter_pairs()
     inter.grid_inter_pairs('../data/images/contact_lens_crop_calib_760/')
-    img = inter.reconstruction(390)
+    img = inter.reconstruction(200)
     plt.imshow(img)
     plt.show()
 
