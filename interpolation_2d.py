@@ -12,6 +12,7 @@ class Interpolation2D:
         self.yidx = yidx
         self.xlength, self.zlength = xlength, zlength
         self.n1, self.n2, self.n3 = n1, n2, n3
+        self.top_fit, self.bot_fit = None, None
         top_seg_raw = np.array(pd.read_csv("../data/seg_res/seg_res_calib_760/result_top_" + str(yidx) + ".csv",
                                            header=None))
         bot_seg_raw = np.array(pd.read_csv("../data/seg_res/seg_res_calib_760/result_bot_" + str(yidx) + ".csv",
@@ -26,6 +27,29 @@ class Interpolation2D:
         self.bot_seg_mm = np.multiply(self.bot_seg, [float(xlength) / self.xdim, float(zlength) / self.zdim])
         self.images = cv.imread("../data/images/contact_lens_crop_calib_760/0_" + str(yidx) + "_bscan.png",
                                 cv.IMREAD_GRAYSCALE)
+
+    def fit_circle(self, layer):
+        seg_mm = None
+        if layer == 'top':
+            seg_mm = self.top_seg_mm
+        # elif layer == 'corr_bot':
+        #     seg_mm = self.bot_seg_mm
+        co_mat = np.zeros((seg_mm.shape[0], 3))
+        co_mat[:, 0] = seg_mm[:, 0] * 2
+        co_mat[:, 1] = seg_mm[:, 1] * 2
+        co_mat[:, 2] = 1
+        ordinate = np.zeros((seg_mm.shape[0], 1))
+        ordinate[:, 0] = np.sum(np.power(seg_mm, 2), axis=1)
+        res, err, _, _ = np.linalg.lstsq(co_mat, ordinate, rcond=None)
+        print("The circle fitting error is:", err)
+        rad = np.sqrt(np.power(res[0], 2) + np.power(res[1], 2) + res[3])
+        seg_fit = np.copy(seg_mm)
+        for i in range(seg_fit.shape[0]):
+            seg_fit[i, 1] = -np.sqrt(np.power(rad, 2) - np.power(seg_mm[i, 0] - res[0], 2)) + res[1]
+        if layer == 'top':
+            self.top_fit = seg_fit
+        # elif layer == 'corr_bot':
+        #     self.bot_fit = seg_fit
 
 
 if __name__ == "__main__":
