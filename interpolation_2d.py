@@ -14,6 +14,7 @@ class Interpolation2D:
         self.n1, self.n2, self.n3 = n1, n2, n3
         self.top_fit, self.bot_fit = None, None
         self.top_normal, self.bot_normal = None, None
+        self.top_refract, self.bot_refract = None, None
         top_seg_raw = np.array(pd.read_csv("../data/seg_res/seg_res_calib_760/result_top_" + str(yidx) + ".csv",
                                            header=None))
         bot_seg_raw = np.array(pd.read_csv("../data/seg_res/seg_res_calib_760/result_bot_" + str(yidx) + ".csv",
@@ -58,7 +59,32 @@ class Interpolation2D:
         # elif layer == 'corr_bot':
         #     self.bot_fit = seg_fit
 
+    def cal_refract(self, layer):
+        incidents, points, normals, r = None, None, None, None
+        refracts = np.zeros_like(self.top_normal)
+        if layer == 'top':
+            incidents = np.repeat([[0.0, 1.0]], self.top_normal.shape[0], axis=0)
+            points = self.top_fit
+            normals = self.top_normal
+            r = self.n1 / self.n2
+            self.top_refract = np.zeros_like(normals)
+        elif layer == 'bot':
+            incidents = self.top_refract
+            points = self.bot_fit
+            normals = self.bot_normal
+            r = self.n2 / self.n3
+            self.bot_refract = np.zeros_like(normals)
+        for i in range(points.shape[0]):
+            c = -np.dot(normals[i], incidents[i])
+            refract = r * incidents[i] + (r * c - np.sqrt(1 - np.power(r, 2) * (1 - np.power(c, 2)))) * normals[i]
+            refracts[i] = refract / np.linalg.norm(refract)
+        if layer == 'top':
+            self.top_refract = refracts
+        elif layer == 'bot':
+            self.bot_refract = refracts
+
 
 if __name__ == "__main__":
     inter_2d = Interpolation2D(416, 310, 400, 5.73, 1.68, 1., 1.466, 1.)
     inter_2d.fit_circle(layer='top')
+    inter_2d.cal_refract(layer='top')
