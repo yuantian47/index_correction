@@ -4,6 +4,7 @@ import cv2 as cv
 import matplotlib as plt
 from scipy import interpolate
 from tqdm import tqdm
+import matplotlib.pyplot as plt
 
 
 class Interpolation2D:
@@ -104,9 +105,26 @@ class Interpolation2D:
         rays, values = rays.reshape((-1, 2)), values.reshape((-1, 1))
         self.linear_interpolator = interpolate.LinearNDInterpolator(rays, values, fill_value=-1.0)
 
+    def reconstruction(self):
+        img = np.zeros((self.xdim, self.zdim), dtype=np.uint8)
+        print("Reconstructing the image.")
+        for i in tqdm(range(self.xdim)):
+            for j in range(self.zdim):
+                pos = np.multiply([i, j], [self.xlength/self.xdim, self.zlength/self.zdim])
+                img[i][j] = np.uint8(self.linear_interpolator(pos))
+        img = cv.cvtColor(img.transpose(), cv.COLOR_GRAY2RGB)
+        for i in self.top_seg:
+            img[int(i[1])][int(i[0])] = np.array([255, 0, 0])
+        for i in self.bot_seg:
+            img[int(i[1])][int(i[0])] = np.array([0, 255, 0])
+        return img
+
 
 if __name__ == "__main__":
-    inter_2d = Interpolation2D(416, 310, 400, 5.73, 1.68, 1., 1.466, 1.)
+    inter_2d = Interpolation2D(416, 310, 500, 5.73, 1.68, 1., 1.466, 1.)
     inter_2d.fit_circle(layer='top')
     inter_2d.cal_refract(layer='top')
     inter_2d.linear_inter_pairs()
+    img = inter_2d.reconstruction()
+    plt.imshow(img)
+    plt.show()
