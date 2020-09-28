@@ -13,6 +13,7 @@ class Interpolation2D:
         self.xlength, self.zlength = xlength, zlength
         self.n1, self.n2, self.n3 = n1, n2, n3
         self.top_fit, self.bot_fit = None, None
+        self.top_normal, self.bot_normal = None, None
         top_seg_raw = np.array(pd.read_csv("../data/seg_res/seg_res_calib_760/result_top_" + str(yidx) + ".csv",
                                            header=None))
         bot_seg_raw = np.array(pd.read_csv("../data/seg_res/seg_res_calib_760/result_bot_" + str(yidx) + ".csv",
@@ -42,15 +43,22 @@ class Interpolation2D:
         ordinate[:, 0] = np.sum(np.power(seg_mm, 2), axis=1)
         res, err, _, _ = np.linalg.lstsq(co_mat, ordinate, rcond=None)
         print("The circle fitting error is:", err)
-        rad = np.sqrt(np.power(res[0], 2) + np.power(res[1], 2) + res[3])
+        rad = np.sqrt(np.power(res[0], 2) + np.power(res[1], 2) + res[2])
+        print("The radius of the circle is:", rad)
         seg_fit = np.copy(seg_mm)
         for i in range(seg_fit.shape[0]):
             seg_fit[i, 1] = -np.sqrt(np.power(rad, 2) - np.power(seg_mm[i, 0] - res[0], 2)) + res[1]
+        seg_normal = np.zeros_like(seg_mm)
+        for i in range(seg_normal.shape[0]):
+            normal = np.array([seg_fit[i][0] - res[0], seg_fit[i][1] - res[1]]).T
+            seg_normal[i] = normal / rad
         if layer == 'top':
             self.top_fit = seg_fit
+            self.top_normal = seg_normal
         # elif layer == 'corr_bot':
         #     self.bot_fit = seg_fit
 
 
 if __name__ == "__main__":
     inter_2d = Interpolation2D(416, 310, 400, 5.73, 1.68, 1., 1.466, 1.)
+    inter_2d.fit_circle(layer='top')
