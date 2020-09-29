@@ -1,8 +1,10 @@
 import numpy as np
 import pandas as pd
 import cv2 as cv
-from scipy import interpolate
+from scipy import interpolate, spatial
 from tqdm import tqdm
+import matplotlib
+matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 
 
@@ -32,6 +34,8 @@ class Interpolation2D:
         self.corr_bot_seg_mm = None
         self.images = cv.imread("../data/images/contact_lens_crop_calib_760/0_" + str(yidx) + "_bscan.png",
                                 cv.IMREAD_GRAYSCALE)
+        self.values, self.rays = None, None
+        self.bot_rays = np.zeros((xdim, 2))
 
     def fit_circle(self, layer):
         seg_mm = None
@@ -115,17 +119,30 @@ class Interpolation2D:
         for i in tqdm(range(self.xdim)):
             bot_point = np.argwhere(rays[i][:, 1] > self.bot_fit[i][1])[0, 0]
             rays[i][bot_point:] = self.bot_refraction_correction(self.bot_refract[i], self.bot_fit[i],
-                                                                 rays[i][bot_point:], self.n3)
-        rays, values = rays.reshape((-1, 2)), values.reshape((-1, 1))
-        self.linear_interpolator = interpolate.LinearNDInterpolator(rays, values, fill_value=-1.0)
+                                                                 rays[i][bot_point:], self.n3/self.n2)
+        self.bot_rays = rays[:, -1]
+        self.rays, self.values = rays.reshape((-1, 2)), values.reshape((-1, 1))
+        self.linear_interpolator = interpolate.LinearNDInterpolator(self.rays, self.values, fill_value=-1.0)
+
+    def convex_hull_check(self, pos):
+        if self.bot_rays[0, 0] < pos[0] < self.bot_rays[-1, 0]:
+            first_idx = np.argwhere(self.bot_rays[:, 0] > pos[0])[0, 0]
+            second_idx = first_idx - 1
+            if self.bot_rays[first_idx, 1] > pos[1] and self.bot_rays[second_idx, 1] > pos[1]:
+                return True
+            else:
+                return False
+        else:
+            return True
 
     def reconstruction(self):
-        img = np.zeros((self.xdim, self.zdim), dtype=np.uint8)
+        img = np.full((self.xdim, self.zdim), 255, dtype=np.uint8)
         print("Reconstructing the image.")
         for i in tqdm(range(self.xdim)):
             for j in range(self.zdim):
                 pos = np.multiply([i, j], [self.xlength/self.xdim, self.zlength/self.zdim])
-                img[i][j] = np.uint8(self.linear_interpolator(pos))
+                if self.convex_hull_check(pos):
+                    img[i][j] = np.uint8(self.linear_interpolator(pos))
         img = cv.cvtColor(img.transpose(), cv.COLOR_GRAY2RGB)
         for i in self.top_seg:
             img[int(i[1])][int(i[0])] = np.array([255, 0, 0])
@@ -142,3 +159,9 @@ if __name__ == "__main__":
     img = inter_2d.reconstruction()
     plt.imshow(img)
     plt.show()
+
+    # hull = spatial.ConvexHull(inter_2d.rays)
+    # plt.plot(inter_2d.rays[:, 0], inter_2d.rays[:, 1], '.')
+    # for simplex in hull.simplices:
+    #     plt.plot(inter_2d.rays[simplex, 0], inter_2d.rays[simplex, 1], '-')
+    # plt.show()
