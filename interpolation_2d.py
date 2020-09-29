@@ -1,7 +1,6 @@
 import numpy as np
 import pandas as pd
 import cv2 as cv
-import matplotlib as plt
 from scipy import interpolate
 from tqdm import tqdm
 import matplotlib.pyplot as plt
@@ -30,6 +29,7 @@ class Interpolation2D:
             self.bot_seg[i] = same_x_bot[np.argmax(same_x_bot[:, 1])]
         self.top_seg_mm = np.multiply(self.top_seg, [float(xlength) / self.xdim, float(zlength) / self.zdim])
         self.bot_seg_mm = np.multiply(self.bot_seg, [float(xlength) / self.xdim, float(zlength) / self.zdim])
+        self.corr_bot_seg_mm = None
         self.images = cv.imread("../data/images/contact_lens_crop_calib_760/0_" + str(yidx) + "_bscan.png",
                                 cv.IMREAD_GRAYSCALE)
 
@@ -37,8 +37,8 @@ class Interpolation2D:
         seg_mm = None
         if layer == 'top':
             seg_mm = self.top_seg_mm
-        # elif layer == 'corr_bot':
-        #     seg_mm = self.bot_seg_mm
+        elif layer == 'corr_bot':
+            seg_mm = self.corr_bot_seg_mm
         co_mat = np.zeros((seg_mm.shape[0], 3))
         co_mat[:, 0] = seg_mm[:, 0] * 2
         co_mat[:, 1] = seg_mm[:, 1] * 2
@@ -59,8 +59,9 @@ class Interpolation2D:
         if layer == 'top':
             self.top_fit = seg_fit
             self.top_normal = seg_normal
-        # elif layer == 'corr_bot':
-        #     self.bot_fit = seg_fit
+        elif layer == 'corr_bot':
+            self.bot_fit = seg_fit
+            self.bot_normal = seg_normal
 
     def cal_refract(self, layer):
         incidents, points, normals, r = None, None, None, None
@@ -71,7 +72,7 @@ class Interpolation2D:
             normals = self.top_normal
             r = self.n1 / self.n2
             self.top_refract = np.zeros_like(normals)
-        elif layer == 'bot':
+        elif layer == 'corr_bot':
             incidents = self.top_refract
             points = self.bot_fit
             normals = self.bot_normal
@@ -83,11 +84,16 @@ class Interpolation2D:
             refracts[i] = refract / np.linalg.norm(refract)
         if layer == 'top':
             self.top_refract = refracts
-        elif layer == 'bot':
+        elif layer == 'corr_bot':
             self.bot_refract = refracts
 
     def top_refraction_correction(self, refract, origin, points, group_idx):
         distance = np.absolute(origin[1] - points[:, 1]) / group_idx
+        corrected_points = origin + (distance.reshape(distance.shape[0], 1) * refract)
+        return corrected_points
+
+    def bot_refraction_correction(self, refract, origin, points, group_idx):
+        distance = np.asarray([np.linalg.norm(origin - points[i]) for i in range(points.shape[0])]) / group_idx
         corrected_points = origin + (distance.reshape(distance.shape[0], 1) * refract)
         return corrected_points
 
@@ -96,12 +102,20 @@ class Interpolation2D:
                            cv.IMREAD_GRAYSCALE).transpose()
         rays = np.zeros((self.xdim, self.zdim, 2))
         print("Building linear interpolation function")
+        self.corr_bot_seg_mm = np.zeros_like(self.bot_seg_mm)
         for i in tqdm(range(self.xdim)):
             rays[i] = np.asarray([[(float(i) / self.xdim) * self.xlength,
                                    (float(j) / self.zdim) * self.zlength] for j in range(self.zdim)])
             top_point = np.argwhere(rays[i][:, 1] > self.top_fit[i][1])[0, 0]
             rays[i][top_point:] = self.top_refraction_correction(self.top_refract[i], self.top_fit[i],
                                                                  rays[i][top_point:], self.n2)
+            self.corr_bot_seg_mm[i] = rays[i][int(self.bot_seg[i][1])]
+        self.fit_circle(layer='corr_bot')
+        self.cal_refract(layer='corr_bot')
+        for i in tqdm(range(self.xdim)):
+            bot_point = np.argwhere(rays[i][:, 1] > self.bot_fit[i][1])[0, 0]
+            rays[i][bot_point:] = self.bot_refraction_correction(self.bot_refract[i], self.bot_fit[i],
+                                                                 rays[i][bot_point:], self.n3)
         rays, values = rays.reshape((-1, 2)), values.reshape((-1, 1))
         self.linear_interpolator = interpolate.LinearNDInterpolator(rays, values, fill_value=-1.0)
 
@@ -121,7 +135,7 @@ class Interpolation2D:
 
 
 if __name__ == "__main__":
-    inter_2d = Interpolation2D(416, 310, 500, 5.73, 1.68, 1., 1.466, 1.)
+    inter_2d = Interpolation2D(416, 310, 400, 5.73, 1.68, 1., 1.466, 1.)
     inter_2d.fit_circle(layer='top')
     inter_2d.cal_refract(layer='top')
     inter_2d.linear_inter_pairs()
