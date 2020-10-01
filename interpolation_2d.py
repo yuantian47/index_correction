@@ -160,8 +160,8 @@ if __name__ == "__main__":
     plt.imshow(img)
     plt.show()
 
-    # hull = spatial.ConvexHull(inter_2d.rays)
-    # plt.plot(inter_2d.rays[:, 0], inter_2d.rays[:, 1], '.')
-    # for simplex in hull.simplices:
-    #     plt.plot(inter_2d.rays[simplex, 0], inter_2d.rays[simplex, 1], '-')
-    # plt.show()
+    hull = spatial.ConvexHull((inter_2d.rays * np.array([1., -1.])))
+    plt.plot(inter_2d.rays[:, 0], inter_2d.rays[:, 1] * -1., '.')
+    for idx, simplex in enumerate(hull.simplices):
+            plt.plot(inter_2d.rays[simplex, 0], inter_2d.rays[simplex, 1] * -1., 'r-')
+    plt.show()
