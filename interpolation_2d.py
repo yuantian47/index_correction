@@ -67,6 +67,30 @@ class Interpolation2D:
             self.bot_fit = seg_fit
             self.bot_normal = seg_normal
 
+    def fit_poly(self, layer, order):
+        seg_mm = None
+        if layer == 'top':
+            seg_mm = self.top_seg_mm
+        elif layer == 'corr_bot':
+            seg_mm = self.corr_bot_seg_mm
+        p, error, _, _, _ = np.polyfit(seg_mm[:, 0], seg_mm[:, 1], order,
+                                 rcond=False, full=True)
+        print('The fitting error is:', error)
+        p_class = np.poly1d(p, r=False)
+        p2_class = np.polyder(p_class)
+        seg_fit = np.copy(seg_mm)
+        seg_normal = np.zeros_like(seg_mm)
+        for i in range(seg_fit.shape[0]):
+            seg_fit[i][1] = p_class(seg_fit[i][0])
+            seg_normal[i] = np.array([p2_class(seg_fit[i][0]), -1.]) / \
+                            np.linalg.norm([p2_class(seg_fit[i][0]), -1.])
+        if layer == 'top':
+            self.top_fit = seg_fit
+            self.top_normal = seg_normal
+        elif layer == 'corr_bot':
+            self.bot_fit = seg_fit
+            self.bot_normal = seg_normal
+
     def cal_refract(self, layer):
         incidents, points, normals, r = None, None, None, None
         refracts = np.zeros_like(self.top_normal)
@@ -114,7 +138,8 @@ class Interpolation2D:
             rays[i][top_point:] = self.top_refraction_correction(self.top_refract[i], self.top_fit[i],
                                                                  rays[i][top_point:], self.n2)
             self.corr_bot_seg_mm[i] = rays[i][int(self.bot_seg[i][1])]
-        self.fit_circle(layer='corr_bot')
+        # self.fit_circle(layer='corr_bot')
+        self.fit_poly(layer='corr_bot', order=8)
         self.cal_refract(layer='corr_bot')
         for i in tqdm(range(self.xdim)):
             bot_point = np.argwhere(rays[i][:, 1] > self.bot_fit[i][1])[0, 0]
@@ -162,7 +187,8 @@ class Interpolation2D:
 
 if __name__ == "__main__":
     inter_2d = Interpolation2D(416, 310, 400, 5.73, 1.68, 1., 1.466, 1.)
-    inter_2d.fit_circle(layer='top')
+    # inter_2d.fit_circle(layer='top')
+    inter_2d.fit_poly(layer='top', order=8)
     inter_2d.cal_refract(layer='top')
     inter_2d.linear_inter_pairs()
     img = inter_2d.reconstruction()
