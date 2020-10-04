@@ -3,9 +3,9 @@ import pandas as pd
 import cv2 as cv
 from scipy import interpolate, spatial
 from tqdm import tqdm
+import matplotlib.pyplot as plt
 import matplotlib
 matplotlib.use('TkAgg')
-import matplotlib.pyplot as plt
 
 
 class Interpolation2D:
@@ -144,10 +144,19 @@ class Interpolation2D:
                 if self.convex_hull_check(pos):
                     img[i][j] = np.uint8(self.linear_interpolator(pos))
         img = cv.cvtColor(img.transpose(), cv.COLOR_GRAY2RGB)
+        # Visualize raw segmentation result
         for i in self.top_seg:
             img[int(i[1])][int(i[0])] = np.array([255, 0, 0])
         for i in self.bot_seg:
             img[int(i[1])][int(i[0])] = np.array([0, 255, 0])
+        # Visualize circle fitting segmentation result
+        for i, j in zip(self.top_fit, self.bot_fit):
+            img[int((i[1] / self.zlength) * self.zdim)][
+                int((i[0] / self.xlength) * self.xdim)] = \
+                np.array([255, 128, 0])
+            img[int((j[1] / self.zlength) * self.zdim)][
+                int((j[0] / self.xlength) * self.xdim)] = \
+                np.array([128, 255, 0])
         return img
 
 
@@ -163,5 +172,5 @@ if __name__ == "__main__":
     hull = spatial.ConvexHull((inter_2d.rays * np.array([1., -1.])))
     plt.plot(inter_2d.rays[:, 0], inter_2d.rays[:, 1] * -1., '.')
     for idx, simplex in enumerate(hull.simplices):
-            plt.plot(inter_2d.rays[simplex, 0], inter_2d.rays[simplex, 1] * -1., 'r-')
+        plt.plot(inter_2d.rays[simplex, 0], inter_2d.rays[simplex, 1] * -1., 'r-')
     plt.show()
