@@ -169,11 +169,13 @@ class Interpolation2D:
                 rays[i][bot_point:], self.n3 / self.n2)
         self.bot_rays = rays[:, -1]
         self.rays, self.values = rays.reshape((-1, 2)), values.reshape((-1, 1))
-        self.linear_interpolator = interpolate.LinearNDInterpolator(self.rays,
-                                                                    self.values,
-                                                                    fill_value=-1.0)
+        self.linear_interpolator = \
+            interpolate.LinearNDInterpolator(self.rays,
+                                             self.values,
+                                             fill_value=-1.0,
+                                             rescale=True)
 
-    def convex_hull_check(self, pos):
+    def bot_convex_hull_check(self, pos):
         if self.bot_rays[0, 0] < pos[0] < self.bot_rays[-1, 0]:
             first_idx = np.argwhere(self.bot_rays[:, 0] > pos[0])[0, 0]
             second_idx = first_idx - 1
@@ -184,6 +186,39 @@ class Interpolation2D:
                 return False
         else:
             return True
+
+    def convex_hull_check(self, pos):
+        try:
+            first_idx = np.argwhere(self.rays[:self.zdim , 1] > pos[1])[0, 0]
+        except IndexError:
+            return self.bot_convex_hull_check(pos)
+        if first_idx is not None and first_idx <= self.zdim - 1:
+            second_idx = first_idx + 1
+            if pos[0] < self.rays[first_idx, 0] or pos[0] < self.rays[
+                second_idx, 0]:
+                return False
+        elif first_idx is not None:
+            second_idx = first_idx
+            if pos[0] < self.rays[first_idx, 0] or pos[0] < self.rays[
+                second_idx, 0]:
+                return False
+        try:
+            first_idx = np.argwhere(self.rays[-self.zdim:, 1] > pos[1])[0, 0]
+        except IndexError:
+            return self.bot_convex_hull_check(pos)
+        if first_idx is not None and first_idx <= self.zdim - 1:
+            second_idx = first_idx + 1
+            if pos[0] > self.rays[-self.zdim + first_idx, 0] or pos[0] > \
+                    self.rays[
+                        -self.zdim + second_idx, 0]:
+                return False
+        elif first_idx is not None:
+            second_idx = first_idx
+            if pos[0] > self.rays[-self.zdim + first_idx, 0] or pos[0] > \
+                    self.rays[
+                        -self.zdim + second_idx, 0]:
+                return False
+        return self.bot_convex_hull_check(pos)
 
     def reconstruction(self, x_padding=15):
         img = np.full((self.xdim + 2 * x_padding, self.zdim), 255,
