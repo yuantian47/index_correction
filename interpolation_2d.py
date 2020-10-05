@@ -19,21 +19,31 @@ class Interpolation2D:
         self.top_normal, self.bot_normal = None, None
         self.top_refract, self.bot_refract = None, None
         self.linear_interpolator = None
-        top_seg_raw = np.array(pd.read_csv("../data/seg_res/seg_res_calib_760/result_top_" + str(yidx) + ".csv",
-                                           header=None))
-        bot_seg_raw = np.array(pd.read_csv("../data/seg_res/seg_res_calib_760/result_bot_" + str(yidx) + ".csv",
-                                           header=None))
+        top_seg_raw = np.array(pd.read_csv(
+            "../data/seg_res/seg_res_calib_760/result_top_" + str(
+                yidx) + ".csv",
+            header=None))
+        bot_seg_raw = np.array(pd.read_csv(
+            "../data/seg_res/seg_res_calib_760/result_bot_" + str(
+                yidx) + ".csv",
+            header=None))
         self.top_seg, self.bot_seg = np.zeros((xdim, 2)), np.zeros((xdim, 2))
         for i in range(xdim):
             same_x_top = top_seg_raw[list([*np.where(top_seg_raw[:, 0] == i)[0]])]
             self.top_seg[i] = same_x_top[np.argmax(same_x_top[:, 1])]
             same_x_bot = bot_seg_raw[list([*np.where(bot_seg_raw[:, 0] == i)[0]])]
             self.bot_seg[i] = same_x_bot[np.argmax(same_x_bot[:, 1])]
-        self.top_seg_mm = np.multiply(self.top_seg, [float(xlength) / self.xdim, float(zlength) / self.zdim])
-        self.bot_seg_mm = np.multiply(self.bot_seg, [float(xlength) / self.xdim, float(zlength) / self.zdim])
+        self.top_seg_mm = np.multiply(self.top_seg,
+                                      [float(xlength) / self.xdim,
+                                       float(zlength) / self.zdim])
+        self.bot_seg_mm = np.multiply(self.bot_seg,
+                                      [float(xlength) / self.xdim,
+                                       float(zlength) / self.zdim])
         self.corr_bot_seg_mm = None
-        self.images = cv.imread("../data/images/contact_lens_crop_calib_760/0_" + str(yidx) + "_bscan.png",
-                                cv.IMREAD_GRAYSCALE)
+        self.images = cv.imread(
+            "../data/images/contact_lens_crop_calib_760/0_" + str(
+                yidx) + "_bscan.png",
+            cv.IMREAD_GRAYSCALE)
         self.values, self.rays = None, None
         self.bot_rays = np.zeros((xdim, 2))
 
@@ -55,10 +65,12 @@ class Interpolation2D:
         print("The radius of the circle is:", rad)
         seg_fit = np.copy(seg_mm)
         for i in range(seg_fit.shape[0]):
-            seg_fit[i, 1] = -np.sqrt(np.power(rad, 2) - np.power(seg_mm[i, 0] - res[0], 2)) + res[1]
+            seg_fit[i, 1] = -np.sqrt(
+                np.power(rad, 2) - np.power(seg_mm[i, 0] - res[0], 2)) + res[1]
         seg_normal = np.zeros_like(seg_mm)
         for i in range(seg_normal.shape[0]):
-            normal = np.array([seg_fit[i][0] - res[0], seg_fit[i][1] - res[1]]).T
+            normal = np.array(
+                [seg_fit[i][0] - res[0], seg_fit[i][1] - res[1]]).T
             seg_normal[i] = normal / rad
         if layer == 'top':
             self.top_fit = seg_fit
@@ -95,7 +107,8 @@ class Interpolation2D:
         incidents, points, normals, r = None, None, None, None
         refracts = np.zeros_like(self.top_normal)
         if layer == 'top':
-            incidents = np.repeat([[0.0, 1.0]], self.top_normal.shape[0], axis=0)
+            incidents = np.repeat([[0.0, 1.0]], self.top_normal.shape[0],
+                                  axis=0)
             points = self.top_fit
             normals = self.top_normal
             r = self.n1 / self.n2
@@ -108,7 +121,8 @@ class Interpolation2D:
             self.bot_refract = np.zeros_like(normals)
         for i in range(points.shape[0]):
             c = -np.dot(normals[i], incidents[i])
-            refract = r * incidents[i] + (r * c - np.sqrt(1 - np.power(r, 2) * (1 - np.power(c, 2)))) * normals[i]
+            refract = r * incidents[i] + (r * c - np.sqrt(
+                1 - np.power(r, 2) * (1 - np.power(c, 2)))) * normals[i]
             refracts[i] = refract / np.linalg.norm(refract)
         if layer == 'top':
             self.top_refract = refracts
@@ -117,70 +131,84 @@ class Interpolation2D:
 
     def top_refraction_correction(self, refract, origin, points, group_idx):
         distance = np.absolute(origin[1] - points[:, 1]) / group_idx
-        corrected_points = origin + (distance.reshape(distance.shape[0], 1) * refract)
+        corrected_points = origin + (
+                    distance.reshape(distance.shape[0], 1) * refract)
         return corrected_points
 
     def bot_refraction_correction(self, refract, origin, points, group_idx):
-        distance = np.asarray([np.linalg.norm(origin - points[i]) for i in range(points.shape[0])]) / group_idx
-        corrected_points = origin + (distance.reshape(distance.shape[0], 1) * refract)
+        distance = np.asarray([np.linalg.norm(origin - points[i]) for i in
+                               range(points.shape[0])]) / group_idx
+        corrected_points = origin + (
+                    distance.reshape(distance.shape[0], 1) * refract)
         return corrected_points
 
     def linear_inter_pairs(self):
-        values = cv.imread("../data/images/contact_lens_crop_calib_760/0_" + str(self.yidx) + "_bscan.png",
-                           cv.IMREAD_GRAYSCALE).transpose()
+        values = cv.imread(
+            "../data/images/contact_lens_crop_calib_760/0_" + str(
+                self.yidx) + "_bscan.png",
+            cv.IMREAD_GRAYSCALE).transpose()
         rays = np.zeros((self.xdim, self.zdim, 2))
         print("Building linear interpolation function")
         self.corr_bot_seg_mm = np.zeros_like(self.bot_seg_mm)
         for i in tqdm(range(self.xdim)):
             rays[i] = np.asarray([[(float(i) / self.xdim) * self.xlength,
-                                   (float(j) / self.zdim) * self.zlength] for j in range(self.zdim)])
+                                   (float(j) / self.zdim) * self.zlength] for j
+                                  in range(self.zdim)])
             top_point = np.argwhere(rays[i][:, 1] > self.top_fit[i][1])[0, 0]
-            rays[i][top_point:] = self.top_refraction_correction(self.top_refract[i], self.top_fit[i],
-                                                                 rays[i][top_point:], self.n2)
+            rays[i][top_point:] = self.top_refraction_correction(
+                self.top_refract[i], self.top_fit[i],
+                rays[i][top_point:], self.n2)
             self.corr_bot_seg_mm[i] = rays[i][int(self.bot_seg[i][1])]
         # self.fit_circle(layer='corr_bot')
         self.fit_poly(layer='corr_bot', order=8)
         self.cal_refract(layer='corr_bot')
         for i in tqdm(range(self.xdim)):
             bot_point = np.argwhere(rays[i][:, 1] > self.bot_fit[i][1])[0, 0]
-            rays[i][bot_point:] = self.bot_refraction_correction(self.bot_refract[i], self.bot_fit[i],
-                                                                 rays[i][bot_point:], self.n3/self.n2)
+            rays[i][bot_point:] = self.bot_refraction_correction(
+                self.bot_refract[i], self.bot_fit[i],
+                rays[i][bot_point:], self.n3 / self.n2)
         self.bot_rays = rays[:, -1]
         self.rays, self.values = rays.reshape((-1, 2)), values.reshape((-1, 1))
-        self.linear_interpolator = interpolate.LinearNDInterpolator(self.rays, self.values, fill_value=-1.0)
+        self.linear_interpolator = interpolate.LinearNDInterpolator(self.rays,
+                                                                    self.values,
+                                                                    fill_value=-1.0)
 
     def convex_hull_check(self, pos):
         if self.bot_rays[0, 0] < pos[0] < self.bot_rays[-1, 0]:
             first_idx = np.argwhere(self.bot_rays[:, 0] > pos[0])[0, 0]
             second_idx = first_idx - 1
-            if self.bot_rays[first_idx, 1] > pos[1] and self.bot_rays[second_idx, 1] > pos[1]:
+            if self.bot_rays[first_idx, 1] > pos[1] and self.bot_rays[
+                second_idx, 1] > pos[1]:
                 return True
             else:
                 return False
         else:
             return True
 
-    def reconstruction(self):
-        img = np.full((self.xdim, self.zdim), 255, dtype=np.uint8)
+    def reconstruction(self, x_padding=15):
+        img = np.full((self.xdim + 2 * x_padding, self.zdim), 255,
+                      dtype=np.uint8)
         print("Reconstructing the image.")
-        for i in tqdm(range(self.xdim)):
+        for i in tqdm(range(-x_padding, self.xdim + x_padding)):
             for j in range(self.zdim):
-                pos = np.multiply([i, j], [self.xlength/self.xdim, self.zlength/self.zdim])
+                pos = np.multiply([i, j], [self.xlength / self.xdim,
+                                           self.zlength / self.zdim])
                 if self.convex_hull_check(pos):
-                    img[i][j] = np.uint8(self.linear_interpolator(pos))
+                    img[i + x_padding][j] =\
+                        np.uint8(self.linear_interpolator(pos))
         img = cv.cvtColor(img.transpose(), cv.COLOR_GRAY2RGB)
         # Visualize raw segmentation result
         for i in self.top_seg:
-            img[int(i[1])][int(i[0])] = np.array([255, 0, 0])
+            img[int(i[1])][int(i[0]) + x_padding] = np.array([255, 0, 0])
         for i in self.bot_seg:
-            img[int(i[1])][int(i[0])] = np.array([0, 255, 0])
+            img[int(i[1])][int(i[0]) + x_padding] = np.array([0, 255, 0])
         # Visualize circle fitting segmentation result
         for i, j in zip(self.top_fit, self.bot_fit):
             img[int((i[1] / self.zlength) * self.zdim)][
-                int((i[0] / self.xlength) * self.xdim)] = \
+                int((i[0] / self.xlength) * self.xdim) + x_padding] = \
                 np.array([255, 128, 0])
             img[int((j[1] / self.zlength) * self.zdim)][
-                int((j[0] / self.xlength) * self.xdim)] = \
+                int((j[0] / self.xlength) * self.xdim) + x_padding] = \
                 np.array([128, 255, 0])
         return img
 
@@ -198,5 +226,6 @@ if __name__ == "__main__":
     hull = spatial.ConvexHull((inter_2d.rays * np.array([1., -1.])))
     plt.plot(inter_2d.rays[:, 0], inter_2d.rays[:, 1] * -1., '.')
     for idx, simplex in enumerate(hull.simplices):
-        plt.plot(inter_2d.rays[simplex, 0], inter_2d.rays[simplex, 1] * -1., 'r-')
+        plt.plot(inter_2d.rays[simplex, 0], inter_2d.rays[simplex, 1] * -1.,
+                 'r-')
     plt.show()
