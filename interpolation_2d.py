@@ -19,7 +19,7 @@ class Interpolation2D:
         self.top_normal, self.bot_normal = None, None
         self.top_refract, self.bot_refract = None, None
         self.linear_interpolator = None
-        self.poly_order = 2
+        self.poly_order = 8
         top_seg_raw = np.array(pd.read_csv(
             "../data/seg_res/seg_res_calib_760/result_top_" + str(
                 yidx) + ".csv",
@@ -60,14 +60,15 @@ class Interpolation2D:
         co_mat[:, 2] = 1
         ordinate = np.zeros((seg_mm.shape[0], 1))
         ordinate[:, 0] = np.sum(np.power(seg_mm, 2), axis=1)
-        res, err, _, _ = np.linalg.lstsq(co_mat, ordinate, rcond=None)
-        print("The circle fitting error is:", err)
+        res, _, _, _ = np.linalg.lstsq(co_mat, ordinate, rcond=None)
         rad = np.sqrt(np.power(res[0], 2) + np.power(res[1], 2) + res[2])
         print("The radius of the circle is:", rad)
         seg_fit = np.copy(seg_mm)
         for i in range(seg_fit.shape[0]):
             seg_fit[i, 1] = -np.sqrt(
                 np.power(rad, 2) - np.power(seg_mm[i, 0] - res[0], 2)) + res[1]
+        fitting_error = np.sum(np.power(seg_mm[:, 1] - seg_fit[:, 1], 2))
+        print("The circle fitting error is:", fitting_error)
         seg_normal = np.zeros_like(seg_mm)
         for i in range(seg_normal.shape[0]):
             normal = np.array(
@@ -86,9 +87,8 @@ class Interpolation2D:
             seg_mm = self.top_seg_mm
         elif layer == 'corr_bot':
             seg_mm = self.corr_bot_seg_mm
-        p, error, _, _, _ = np.polyfit(seg_mm[:, 0], seg_mm[:, 1], order,
+        p, _, _, _, _ = np.polyfit(seg_mm[:, 0], seg_mm[:, 1], order,
                                  rcond=False, full=True)
-        print('The fitting error is:', error)
         p_class = np.poly1d(p, r=False)
         p2_class = np.polyder(p_class)
         seg_fit = np.copy(seg_mm)
@@ -97,6 +97,8 @@ class Interpolation2D:
             seg_fit[i][1] = p_class(seg_fit[i][0])
             seg_normal[i] = np.array([p2_class(seg_fit[i][0]), -1.]) / \
                             np.linalg.norm([p2_class(seg_fit[i][0]), -1.])
+        fitting_error = np.sum(np.power(seg_mm[:, 1] - seg_fit[:, 1], 2))
+        print("The poly fitting error is:", fitting_error)
         if layer == 'top':
             self.top_fit = seg_fit
             self.top_normal = seg_normal
@@ -105,8 +107,8 @@ class Interpolation2D:
             self.bot_normal = seg_normal
 
     def cal_refract(self, layer):
-        self.fit_circle(layer='top')
-        # self.fit_poly(layer='top', order=self.poly_order)
+        # self.fit_circle(layer='top')
+        self.fit_poly(layer='top', order=self.poly_order)
         incidents, points, normals, r = None, None, None, None
         refracts = np.zeros_like(self.top_normal)
         if layer == 'top':
@@ -162,8 +164,8 @@ class Interpolation2D:
                 self.top_refract[i], self.top_fit[i],
                 rays[i][top_point:], self.n2)
             self.corr_bot_seg_mm[i] = rays[i][int(self.bot_seg[i][1])]
-        self.fit_circle(layer='corr_bot')
-        # self.fit_poly(layer='corr_bot', order=self.poly_order)
+        # self.fit_circle(layer='corr_bot')
+        self.fit_poly(layer='corr_bot', order=self.poly_order)
         # self.cal_refract(layer='corr_bot')
         # for i in tqdm(range(self.xdim)):
         #     bot_point = np.argwhere(rays[i][:, 1] > self.bot_fit[i][1])[0, 0]
