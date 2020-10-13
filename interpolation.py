@@ -4,6 +4,8 @@ import open3d as o3d
 from tqdm import tqdm
 import scipy.interpolate
 import cv2 as cv
+import matplotlib
+matplotlib.use("TkAgg")
 import matplotlib.pyplot as plt
 
 import csv_pcd
