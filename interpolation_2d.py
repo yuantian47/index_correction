@@ -201,12 +201,12 @@ class Interpolation2D:
             return self.bot_convex_hull_check(pos)
         if first_idx is not None and first_idx <= self.zdim - 1:
             second_idx = first_idx + 1
-            if pos[0] < self.rays[first_idx, 0] and pos[0] < self.rays[
+            if pos[0] < self.rays[first_idx, 0] or pos[0] < self.rays[
                 second_idx, 0]:
                 return False
         elif first_idx is not None:
             second_idx = first_idx
-            if pos[0] < self.rays[first_idx, 0] and pos[0] < self.rays[
+            if pos[0] < self.rays[first_idx, 0] or pos[0] < self.rays[
                 second_idx, 0]:
                 return False
         try:
@@ -215,15 +215,13 @@ class Interpolation2D:
             return self.bot_convex_hull_check(pos)
         if first_idx is not None and first_idx <= self.zdim - 1:
             second_idx = first_idx + 1
-            if pos[0] > self.rays[-self.zdim + first_idx, 0] and pos[0] > \
-                    self.rays[
-                        -self.zdim + second_idx, 0]:
+            if pos[0] > self.rays[-self.zdim + first_idx - 1, 0] or pos[0] > \
+                    self.rays[-self.zdim + second_idx - 1, 0]:
                 return False
         elif first_idx is not None:
             second_idx = first_idx
-            if pos[0] > self.rays[-self.zdim + first_idx, 0] and pos[0] > \
-                    self.rays[
-                        -self.zdim + second_idx, 0]:
+            if pos[0] > self.rays[-self.zdim + first_idx - 1, 0] or pos[0] > \
+                    self.rays[-self.zdim + second_idx - 1, 0]:
                 return False
         return self.bot_convex_hull_check(pos)
 
@@ -256,7 +254,7 @@ class Interpolation2D:
 
 
 if __name__ == "__main__":
-    inter_2d = Interpolation2D(416, 677, 400, 5.81, 3.67, 1., 1.466, 1.335)
+    inter_2d = Interpolation2D(416, 677, 400, 5.81, 3.67, 1., 1.466, 1.3350)
     inter_2d.cal_refract(layer='top')
     inter_2d.linear_inter_pairs()
     img = inter_2d.reconstruction()
