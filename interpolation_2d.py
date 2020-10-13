@@ -19,13 +19,13 @@ class Interpolation2D:
         self.top_normal, self.bot_normal = None, None
         self.top_refract, self.bot_refract = None, None
         self.linear_interpolator = None
-        self.poly_order = 6
+        self.poly_order = 4
         top_seg_raw = np.array(pd.read_csv(
-            "../data/seg_res/seg_res_calib_760/result_top_" + str(
+            "../data/seg_res/seg_res_bss/result_top_" + str(
                 yidx) + ".csv",
             header=None))
         bot_seg_raw = np.array(pd.read_csv(
-            "../data/seg_res/seg_res_calib_760/result_bot_" + str(
+            "../data/seg_res/seg_res_bss/result_bot_" + str(
                 yidx) + ".csv",
             header=None))
         self.top_seg, self.bot_seg = np.zeros((xdim, 2)), np.zeros((xdim, 2))
@@ -42,7 +42,7 @@ class Interpolation2D:
                                        float(zlength) / self.zdim])
         self.corr_bot_seg_mm = None
         self.images = cv.imread(
-            "../data/images/contact_lens_crop_calib_760/0_" + str(
+            "../data/images/bss_760_crop/0_" + str(
                 yidx) + "_bscan.png",
             cv.IMREAD_GRAYSCALE)
         self.values, self.rays = None, None
@@ -151,7 +151,7 @@ class Interpolation2D:
 
     def linear_inter_pairs(self):
         values = cv.imread(
-            "../data/images/contact_lens_crop_calib_760/0_" + str(
+            "../data/images/bss_760_crop/0_" + str(
                 self.yidx) + "_bscan.png",
             cv.IMREAD_GRAYSCALE).transpose()
         rays = np.zeros((self.xdim, self.zdim, 2))
@@ -196,17 +196,17 @@ class Interpolation2D:
 
     def convex_hull_check(self, pos):
         try:
-            first_idx = np.argwhere(self.rays[:self.zdim , 1] > pos[1])[0, 0]
+            first_idx = np.argwhere(self.rays[:self.zdim, 1] > pos[1])[0, 0]
         except IndexError:
             return self.bot_convex_hull_check(pos)
         if first_idx is not None and first_idx <= self.zdim - 1:
             second_idx = first_idx + 1
-            if pos[0] < self.rays[first_idx, 0] or pos[0] < self.rays[
+            if pos[0] < self.rays[first_idx, 0] and pos[0] < self.rays[
                 second_idx, 0]:
                 return False
         elif first_idx is not None:
             second_idx = first_idx
-            if pos[0] < self.rays[first_idx, 0] or pos[0] < self.rays[
+            if pos[0] < self.rays[first_idx, 0] and pos[0] < self.rays[
                 second_idx, 0]:
                 return False
         try:
@@ -215,13 +215,13 @@ class Interpolation2D:
             return self.bot_convex_hull_check(pos)
         if first_idx is not None and first_idx <= self.zdim - 1:
             second_idx = first_idx + 1
-            if pos[0] > self.rays[-self.zdim + first_idx, 0] or pos[0] > \
+            if pos[0] > self.rays[-self.zdim + first_idx, 0] and pos[0] > \
                     self.rays[
                         -self.zdim + second_idx, 0]:
                 return False
         elif first_idx is not None:
             second_idx = first_idx
-            if pos[0] > self.rays[-self.zdim + first_idx, 0] or pos[0] > \
+            if pos[0] > self.rays[-self.zdim + first_idx, 0] and pos[0] > \
                     self.rays[
                         -self.zdim + second_idx, 0]:
                 return False
@@ -240,10 +240,10 @@ class Interpolation2D:
                         np.uint8(self.linear_interpolator(pos))
         img = cv.cvtColor(img.transpose(), cv.COLOR_GRAY2RGB)
         # Visualize raw segmentation result
-        # for i in self.top_seg:
-        #     img[int(i[1])][int(i[0]) + x_padding] = np.array([255, 0, 0])
-        # for i in self.bot_seg:
-        #     img[int(i[1])][int(i[0]) + x_padding] = np.array([0, 255, 0])
+        for i in self.top_seg:
+            img[int(i[1])][int(i[0]) + x_padding] = np.array([255, 0, 0])
+        for i in self.bot_seg:
+            img[int(i[1])][int(i[0]) + x_padding] = np.array([0, 255, 0])
         # Visualize fitting segmentation result
         for i, j in zip(self.top_fit, self.bot_fit):
             img[int((i[1] / self.zlength) * self.zdim)][
@@ -256,7 +256,7 @@ class Interpolation2D:
 
 
 if __name__ == "__main__":
-    inter_2d = Interpolation2D(416, 310, 300, 5.73, 1.68, 1., 1.466, 1.)
+    inter_2d = Interpolation2D(416, 677, 400, 5.81, 3.67, 1., 1.466, 1.335)
     inter_2d.cal_refract(layer='top')
     inter_2d.linear_inter_pairs()
     img = inter_2d.reconstruction()
