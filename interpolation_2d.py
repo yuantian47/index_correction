@@ -19,7 +19,7 @@ class Interpolation2D:
         self.top_normal, self.bot_normal = None, None
         self.top_refract, self.bot_refract = None, None
         self.linear_interpolator = None
-        self.poly_order = 8
+        self.poly_order = 6
         top_seg_raw = np.array(pd.read_csv(
             "../data/seg_res/seg_res_calib_760/result_top_" + str(
                 yidx) + ".csv",
@@ -89,6 +89,7 @@ class Interpolation2D:
             seg_mm = self.corr_bot_seg_mm
         p, _, _, _, _ = np.polyfit(seg_mm[:, 0], seg_mm[:, 1], order,
                                  rcond=False, full=True)
+        print("The coffeicients are:", p.tolist())
         p_class = np.poly1d(p, r=False)
         p2_class = np.polyder(p_class)
         seg_fit = np.copy(seg_mm)
@@ -107,8 +108,9 @@ class Interpolation2D:
             self.bot_normal = seg_normal
 
     def cal_refract(self, layer):
-        # self.fit_circle(layer='top')
-        self.fit_poly(layer='top', order=self.poly_order)
+        if layer == 'top':
+            # self.fit_circle(layer='top')
+            self.fit_poly(layer='top', order=self.poly_order)
         incidents, points, normals, r = None, None, None, None
         refracts = np.zeros_like(self.top_normal)
         if layer == 'top':
@@ -166,12 +168,12 @@ class Interpolation2D:
             self.corr_bot_seg_mm[i] = rays[i][int(self.bot_seg[i][1])]
         # self.fit_circle(layer='corr_bot')
         self.fit_poly(layer='corr_bot', order=self.poly_order)
-        # self.cal_refract(layer='corr_bot')
-        # for i in tqdm(range(self.xdim)):
-        #     bot_point = np.argwhere(rays[i][:, 1] > self.bot_fit[i][1])[0, 0]
-        #     rays[i][bot_point:] = self.bot_refraction_correction(
-        #         self.bot_refract[i], self.bot_fit[i],
-        #         rays[i][bot_point:], self.n3 / self.n2)
+        self.cal_refract(layer='corr_bot')
+        for i in tqdm(range(self.xdim)):
+            bot_point = np.argwhere(rays[i][:, 1] > self.bot_fit[i][1])[0, 0]
+            rays[i][bot_point:] = self.bot_refraction_correction(
+                self.bot_refract[i], self.bot_fit[i],
+                rays[i][bot_point:], self.n3 / self.n2)
         self.bot_rays = rays[:, -1]
         self.rays, self.values = rays.reshape((-1, 2)), values.reshape((-1, 1))
         self.linear_interpolator = \
@@ -238,10 +240,10 @@ class Interpolation2D:
                         np.uint8(self.linear_interpolator(pos))
         img = cv.cvtColor(img.transpose(), cv.COLOR_GRAY2RGB)
         # Visualize raw segmentation result
-        for i in self.top_seg:
-            img[int(i[1])][int(i[0]) + x_padding] = np.array([255, 0, 0])
-        for i in self.bot_seg:
-            img[int(i[1])][int(i[0]) + x_padding] = np.array([0, 255, 0])
+        # for i in self.top_seg:
+        #     img[int(i[1])][int(i[0]) + x_padding] = np.array([255, 0, 0])
+        # for i in self.bot_seg:
+        #     img[int(i[1])][int(i[0]) + x_padding] = np.array([0, 255, 0])
         # Visualize fitting segmentation result
         for i, j in zip(self.top_fit, self.bot_fit):
             img[int((i[1] / self.zlength) * self.zdim)][
@@ -254,7 +256,7 @@ class Interpolation2D:
 
 
 if __name__ == "__main__":
-    inter_2d = Interpolation2D(416, 310, 400, 5.73, 1.68, 1., 1.466, 1.)
+    inter_2d = Interpolation2D(416, 310, 300, 5.73, 1.68, 1., 1.466, 1.)
     inter_2d.cal_refract(layer='top')
     inter_2d.linear_inter_pairs()
     img = inter_2d.reconstruction()
@@ -263,7 +265,7 @@ if __name__ == "__main__":
 
     hull = spatial.ConvexHull((inter_2d.rays * np.array([1., -1.])))
     plt.plot(inter_2d.rays[:, 0], inter_2d.rays[:, 1] * -1., '.')
-    # for idx, simplex in enumerate(hull.simplices):
-    #     plt.plot(inter_2d.rays[simplex, 0], inter_2d.rays[simplex, 1] * -1.,
-    #              'r-')
+    for idx, simplex in enumerate(hull.simplices):
+        plt.plot(inter_2d.rays[simplex, 0], inter_2d.rays[simplex, 1] * -1.,
+                 'r-')
     plt.show()
