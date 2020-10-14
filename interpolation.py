@@ -82,8 +82,8 @@ class Interpolation:
                 break
             if ((i+1)//(self.xdim+1)) % dp_y != 0:
                 continue
-            if (i%self.xdim) % dp_x != 0:
-                if i%(self.xdim-1) != 0:
+            if (i % self.xdim) % dp_x != 0:
+                if i % (self.xdim-1) != 0:
                     continue
             top_refract = self.seg.refracts_top[i]
             bot_refract = self.seg.refracts_bot[i]
@@ -96,17 +96,18 @@ class Interpolation:
             values[idx_x, idx_y, :, :2] = top_smooth_points[i][:2]
             values[idx_x, idx_y, :top_point[0, 0], 2] = \
                 np.linspace(0, top_smooth_points[i][2], top_point[0, 0])
-            values[idx_x, idx_y, top_point[0, 0]:bot_point[0, 0], :] = \
-                self.refract_correction(top_refract, top_smooth_points[i],
-                                        top_smooth_points[i],
-                                        positions[idx_x, idx_y,
-                                        top_point[0, 0]:bot_point[0, 0], :],
-                                        self.n2)
+            values[idx_x, idx_y, top_point[0, 0]:, :] = \
+                self.refract_correction_top(top_refract, top_smooth_points[i],
+                                            top_smooth_points[i],
+                                            positions[idx_x, idx_y,
+                                            top_point[0, 0]:, :],
+                                            self.n2)
             values[idx_x, idx_y, bot_point[0, 0]:, :] = \
-                self.refract_correction(bot_refract, bot_points[i],
-                                        bot_smooth_points[i],
-                                        positions[idx_x, idx_y,
-                                        bot_point[0, 0]:, :], self.n3)
+                self.refract_correction_bot(bot_refract,
+                                            bot_smooth_points[i],
+                                            values[idx_x, idx_y,
+                                            bot_point[0, 0]:, :],
+                                            self.n3 / self.n2)
             idx_x += 1
             if idx_x == self.xdim//dp_x:
                 idx_y += 1
@@ -119,9 +120,16 @@ class Interpolation:
                                                    fill_value=-1.)
         print("Interpolator Built.")
 
-    def refract_correction(self, refract, dis_origin, origin, points,
-                           group_idx):
+    def refract_correction_top(self, refract, dis_origin, origin, points,
+                               group_idx):
         raw_distance = np.absolute(dis_origin[2] - points[:, 2])
+        distance = raw_distance / group_idx
+        corrected_points = origin + \
+                           (distance.reshape(distance.shape[0], 1) * refract)
+        return corrected_points
+
+    def refract_correction_bot(self, refract, origin, points, group_idx):
+        raw_distance = np.absolute(np.linalg.norm(points - origin, axis=1))
         distance = raw_distance / group_idx
         corrected_points = origin + \
                            (distance.reshape(distance.shape[0], 1) * refract)
@@ -149,11 +157,11 @@ class Interpolation:
 
 
 if __name__ == "__main__":
-    inter = Interpolation("../data/seg_res/seg_res_calib_760/",
-                          [200, 600], 416, 401, 310, 5.73, 5.0,
-                          1.68, 1., 1.466, 1.)
+    inter = Interpolation("../data/seg_res/seg_res_bss/",
+                          [200, 600], 416, 401, 677, 5.73, 5.0,
+                          3.67, 1., 1.466, 1.3350)
     inter.nn_inter_pairs()
-    inter.grid_inter_pairs('../data/images/contact_lens_crop_calib_760/')
+    inter.grid_inter_pairs('../data/images/bss_760_crop/')
     img = inter.reconstruction(300)
     plt.imshow(img)
     plt.show()
