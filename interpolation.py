@@ -82,9 +82,8 @@ class Interpolation:
                 break
             if ((i+1)//(self.xdim+1)) % dp_y != 0:
                 continue
-            if (i % self.xdim) % dp_x != 0:
-                if i % (self.xdim-1) != 0:
-                    continue
+            if (i % self.xdim) % dp_x != 0 and (i + 1) % self.xdim != 0:
+                continue
             top_refract = self.seg.refracts_top[i]
             bot_refract = self.seg.refracts_bot[i]
             positions[idx_x, idx_y, :, :2] = top_smooth_points[i][:2]
