@@ -32,10 +32,8 @@ class Interpolation:
         self.seg.pcd_fit_sphere(layer='bot', method='ls')
         self.bot_smooth_pcd = self.seg.get_bot_smooth_pcd()
         self.bot_smooth_pcd.paint_uniform_color([0, 1, 0])
-        self.seg.ray_tracing(np.repeat([[0.0, 0.0, 1.0]],
-                                       np.asarray(
-                                           self.top_smooth_pcd.points).shape[
-                                           0], axis=0), layer="top")
+        self.seg.ray_tracing(np.repeat([[0.0, 0.0, 1.0]], np.asarray(
+            self.top_smooth_pcd.points).shape[0], axis=0), layer="top")
         self.seg.ray_tracing(self.seg.refracts_top, layer='bot')
         mesh_frame = \
             o3d.geometry.TriangleMesh.create_coordinate_frame(size=1,
@@ -63,7 +61,7 @@ class Interpolation:
                                                       self.values_gr,
                                                       method='linear',
                                                       bounds_error=False,
-                                                      fill_value=0)
+                                                      fill_value=255)
         print("Interpolator Built.")
 
     def nn_inter_pairs(self):
