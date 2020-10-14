@@ -19,7 +19,7 @@ class Interpolation2D:
         self.top_normal, self.bot_normal = None, None
         self.top_refract, self.bot_refract = None, None
         self.linear_interpolator = None
-        self.poly_order = 4
+        self.poly_order = 6
         top_seg_raw = np.array(pd.read_csv(
             "../data/seg_res/seg_res_bss/result_top_" + str(
                 yidx) + ".csv",
@@ -41,9 +41,8 @@ class Interpolation2D:
                                       [float(xlength) / self.xdim,
                                        float(zlength) / self.zdim])
         self.corr_bot_seg_mm = None
-        self.images = cv.imread(
-            "../data/images/bss_760_crop/0_" + str(
-                yidx) + "_bscan.png",
+        self.images = cv.imread("../data/images/bss_760_crop/0_" + str(
+                self.yidx) + "_bscan.png",
             cv.IMREAD_GRAYSCALE)
         self.values, self.rays = None, None
         self.bot_rays = np.zeros((xdim, 2))
@@ -225,7 +224,7 @@ class Interpolation2D:
                 return False
         return self.bot_convex_hull_check(pos)
 
-    def reconstruction(self, x_padding=15):
+    def reconstruction(self, x_padding=10):
         img = np.full((self.xdim + 2 * x_padding, self.zdim), 255,
                       dtype=np.uint8)
         print("Reconstructing the image.")
@@ -254,7 +253,7 @@ class Interpolation2D:
 
 
 if __name__ == "__main__":
-    inter_2d = Interpolation2D(416, 677, 400, 5.81, 3.67, 1., 1.466, 1.3350)
+    inter_2d = Interpolation2D(416, 677, 300, 5.81, 3.67, 1., 1.466, 1.335)
     inter_2d.cal_refract(layer='top')
     inter_2d.linear_inter_pairs()
     img = inter_2d.reconstruction()
