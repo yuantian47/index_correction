@@ -44,6 +44,7 @@ class Interpolation:
             point_show_normal=False)
         self.positions_nd, self.values_nd, self.values_gr = None, None, None
         self.nninter, self.gridinter = None, None
+        self.lowest_layer = []
 
     def grid_inter_pairs(self, imgs_dir):
         values_gr = np.zeros((self.xdim, self.ydim, self.zdim))
@@ -72,6 +73,7 @@ class Interpolation:
                               self.zdim // dp_z, 3))
         values = np.zeros(((self.xdim // dp_x) + 1, (self.ydim // dp_y) + 1,
                            self.zdim // dp_z, 3))
+        lowest_layer = []
         print("Building interpolation matrix.")
         idx_x, idx_y = 0, 0
         top_smooth_points = np.asarray(self.top_smooth_pcd.points)
@@ -107,10 +109,12 @@ class Interpolation:
                                             values[idx_x, idx_y,
                                             bot_point[0, 0]:, :],
                                             self.n3 / self.n2)
+            lowest_layer.append(values[idx_x, idx_y, -1, :])
             idx_x += 1
             if idx_x == self.xdim//dp_x:
                 idx_y += 1
                 idx_x = 0
+        self.lowest_layer = np.asarray(lowest_layer)
         self.positions_nd, self.values_nd = positions.reshape(
             (-1, 3)), values.reshape((-1, 3))
         self.nninter = \
@@ -134,15 +138,27 @@ class Interpolation:
                            (distance.reshape(distance.shape[0], 1) * refract)
         return corrected_points
 
+    def bot_convexhull_check(self, pos):
+        xy_diff_arr = np.subtract(self.lowest_layer[:, :2], pos[:2])
+        xy_dis_arr = np.linalg.norm(xy_diff_arr, axis=1)
+        small_3_idx = np.argpartition(xy_dis_arr, 3)
+        if pos[2] - self.lowest_layer[small_3_idx[0]][2] > 0 or \
+           pos[2] - self.lowest_layer[small_3_idx[1]][2] > 0 or \
+           pos[2] - self.lowest_layer[small_3_idx[2]][2] > 0:
+            return False
+        else:
+            return True
+
     def reconstruction(self, y_idx):
-        img = np.zeros((self.xdim, self.zdim), dtype=np.uint8)
+        img = np.full((self.xdim, self.zdim), 255, dtype=np.uint8)
         print("Reconstructing image")
         for i in tqdm(range(0, self.xdim)):
             for j in range(0, self.zdim):
                 pos = np.multiply([i, y_idx, j], [self.xlength/self.xdim,
                                                   self.ylength/self.ydim,
                                                   self.zlength/self.zdim])
-                img[i][j] = np.uint8(self.gridinter(self.nninter(pos)))
+                if self.bot_convexhull_check(pos):
+                    img[i][j] = np.uint8(self.gridinter(self.nninter(pos)))
         img = cv.cvtColor(img.transpose(), cv.COLOR_GRAY2RGB)
         top_seg = np.array(pd.read_csv(self.directory + "result_top_" +
                                        str(y_idx+200) + ".csv", header=None))
