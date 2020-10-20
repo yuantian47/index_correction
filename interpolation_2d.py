@@ -98,7 +98,7 @@ class Interpolation2D:
         elif layer == 'corr_bot':
             seg_mm = self.corr_bot_seg_mm
         p, _, _, _, _ = np.polyfit(seg_mm[:, 0], seg_mm[:, 1], order,
-                                 rcond=False, full=True)
+                                   rcond=False, full=True)
         print("The coffeicients are:", p.tolist())
         p_class = np.poly1d(p, r=False)
         p2_class = np.polyder(p_class)
@@ -267,6 +267,20 @@ class Interpolation2D:
                 np.array([128, 255, 128])
         return img
 
+    def fit_target_seg(self):
+        p, _, _, _, _ = np.polyfit(self.corr_tar_seg_mm[:, 0],
+                                   self.corr_tar_seg_mm[:, 1],
+                                   1, rcond=False, full=True)
+        p_class = np.poly1d(p)
+        seg_fit = np.copy(self.corr_tar_seg_mm)
+        for i in range(seg_fit.shape[0]):
+            seg_fit[i][1] = p_class(seg_fit[i][0])
+        fitting_error = np.sum(np.power(self.corr_tar_seg_mm[:, 1] -
+                                        seg_fit[:, 1], 2))
+        print("The fitting error for the corrected segmentation is: ",
+              fitting_error)
+        return p, fitting_error
+
 
 if __name__ == "__main__":
     inter_2d = Interpolation2D(416, 677, 300, 5.81, 3.67, 1., 1.466, 1.335)
@@ -282,3 +296,7 @@ if __name__ == "__main__":
         plt.plot(inter_2d.rays[simplex, 0], inter_2d.rays[simplex, 1] * -1.,
                  'r-')
     plt.show()
+
+    p, fitting_error = inter_2d.fit_target_seg()
+    print("The fitting coefficient and fitting error for the corrected "
+          "target is: ", p, fitting_error)
