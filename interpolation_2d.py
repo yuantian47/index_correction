@@ -22,22 +22,32 @@ class Interpolation2D:
         self.poly_order = 6
         top_seg_raw = np.array(pd.read_csv(
             "../data/seg_res/seg_res_bss/result_top_" + str(
-                yidx) + ".csv",
-            header=None))
+                yidx) + ".csv", header=None))
         bot_seg_raw = np.array(pd.read_csv(
             "../data/seg_res/seg_res_bss/result_bot_" + str(
-                yidx) + ".csv",
-            header=None))
+                yidx) + ".csv", header=None))
+        tar_seg_raw = np.array(pd.read_csv(
+            "../data/seg_res/seg_res_bss_target/result_top_" + str(
+                yidx) + ".csv", header=None))
         self.top_seg, self.bot_seg = np.zeros((xdim, 2)), np.zeros((xdim, 2))
+        self.tar_seg = np.zeros((xdim, 2))
         for i in range(xdim):
-            same_x_top = top_seg_raw[list([*np.where(top_seg_raw[:, 0] == i)[0]])]
+            same_x_top = top_seg_raw[list([*np.where(
+                top_seg_raw[:, 0] == i)[0]])]
             self.top_seg[i] = same_x_top[np.argmax(same_x_top[:, 1])]
-            same_x_bot = bot_seg_raw[list([*np.where(bot_seg_raw[:, 0] == i)[0]])]
+            same_x_bot = bot_seg_raw[list([*np.where(
+                bot_seg_raw[:, 0] == i)[0]])]
             self.bot_seg[i] = same_x_bot[np.argmax(same_x_bot[:, 1])]
+            same_x_tar = tar_seg_raw[list([*np.where(
+                tar_seg_raw[:, 0] == i)[0]])]
+            self.tar_seg[i] = same_x_tar[np.argmax(same_x_tar[:, 1])]
         self.top_seg_mm = np.multiply(self.top_seg,
                                       [float(xlength) / self.xdim,
                                        float(zlength) / self.zdim])
         self.bot_seg_mm = np.multiply(self.bot_seg,
+                                      [float(xlength) / self.xdim,
+                                       float(zlength) / self.zdim])
+        self.tar_seg_mm = np.multiply(self.tar_seg,
                                       [float(xlength) / self.xdim,
                                        float(zlength) / self.zdim])
         self.corr_bot_seg_mm = None
@@ -224,7 +234,7 @@ class Interpolation2D:
                 return False
         return self.bot_convex_hull_check(pos)
 
-    def reconstruction(self, x_padding=10):
+    def reconstruction(self, x_padding=0):
         img = np.full((self.xdim + 2 * x_padding, self.zdim), 255,
                       dtype=np.uint8)
         print("Reconstructing the image.")
