@@ -28,7 +28,7 @@ class Interpolation2D:
                 yidx) + ".csv", header=None))
         tar_seg_raw = np.array(pd.read_csv(
             "../data/seg_res/seg_res_bss_target/result_top_" + str(
-                yidx) + ".csv", header=None))
+                yidx) + ".csv", header=None)) + np.array([0, 300])
         self.top_seg, self.bot_seg = np.zeros((xdim, 2)), np.zeros((xdim, 2))
         self.tar_seg = np.zeros((xdim, 2))
         for i in range(xdim):
@@ -51,6 +51,7 @@ class Interpolation2D:
                                       [float(xlength) / self.xdim,
                                        float(zlength) / self.zdim])
         self.corr_bot_seg_mm = None
+        self.corr_tar_seg_mm = None
         self.images = cv.imread("../data/images/bss_760_crop/0_" + str(
                 self.yidx) + "_bscan.png",
             cv.IMREAD_GRAYSCALE)
@@ -166,6 +167,7 @@ class Interpolation2D:
         rays = np.zeros((self.xdim, self.zdim, 2))
         print("Building linear interpolation function")
         self.corr_bot_seg_mm = np.zeros_like(self.bot_seg_mm)
+        self.corr_tar_seg_mm = np.zeros_like(self.tar_seg_mm)
         for i in tqdm(range(self.xdim)):
             rays[i] = np.asarray([[(float(i) / self.xdim) * self.xlength,
                                    (float(j) / self.zdim) * self.zlength] for j
@@ -183,6 +185,7 @@ class Interpolation2D:
             rays[i][bot_point:] = self.bot_refraction_correction(
                 self.bot_refract[i], self.bot_fit[i],
                 rays[i][bot_point:], self.n3 / self.n2)
+            self.corr_tar_seg_mm[i] = rays[i][int(self.tar_seg[i][1])]
         self.bot_rays = rays[:, -1]
         self.rays, self.values = rays.reshape((-1, 2)), values.reshape((-1, 1))
         self.linear_interpolator = \
@@ -252,13 +255,16 @@ class Interpolation2D:
         for i in self.bot_seg:
             img[int(i[1])][int(i[0]) + x_padding] = np.array([0, 255, 0])
         # Visualize fitting segmentation result
-        for i, j in zip(self.top_fit, self.bot_fit):
+        for i, j, k in zip(self.top_fit, self.bot_fit, self.corr_tar_seg_mm):
             img[int((i[1] / self.zlength) * self.zdim)][
                 int((i[0] / self.xlength) * self.xdim) + x_padding] = \
                 np.array([255, 128, 0])
             img[int((j[1] / self.zlength) * self.zdim)][
                 int((j[0] / self.xlength) * self.xdim) + x_padding] = \
                 np.array([128, 255, 0])
+            img[int((k[1] / self.zlength) * self.zdim)][
+                int((k[0] / self.xlength) * self.xdim) + x_padding] = \
+                np.array([128, 255, 128])
         return img
 
 
