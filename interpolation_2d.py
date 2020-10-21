@@ -243,7 +243,7 @@ class Interpolation2D:
                 return False
         return self.bot_convex_hull_check(pos)
 
-    def reconstruction(self, x_padding=0):
+    def reconstruction(self, x_padding=10):
         img = np.full((self.xdim + 2 * x_padding, self.zdim), 255,
                       dtype=np.uint8)
         print("Reconstructing the image.")
@@ -316,28 +316,28 @@ def analysis_index_correction(analysis_list):
 
 
 if __name__ == "__main__":
-    # inter_2d = Interpolation2D(416, 577, 410, 5.81, 3.13, 1., 1.4745, 1.3435)
-    # inter_2d.cal_refract(layer='top')
-    # inter_2d.linear_inter_pairs()
-    # img = inter_2d.reconstruction()
-    # plt.imshow(img)
-    # plt.show()
-    #
-    # hull = spatial.ConvexHull((inter_2d.rays * np.array([1., -1.])))
-    # plt.plot(inter_2d.rays[:, 0], inter_2d.rays[:, 1] * -1., '.')
-    # for idx, simplex in enumerate(hull.simplices):
-    #     plt.plot(inter_2d.rays[simplex, 0], inter_2d.rays[simplex, 1] * -1.,
-    #              'r-')
-    # plt.show()
+    inter_2d = Interpolation2D(416, 577, 200, 5.81, 3.13, 1., 1.4745, 1.)
+    inter_2d.cal_refract(layer='top')
+    inter_2d.linear_inter_pairs()
+    img = inter_2d.reconstruction()
+    plt.imshow(img)
+    plt.show()
 
-    ana_idx = [200, 230, 260, 290, 320, 350, 380, 410, 440, 470, 500,
-               530, 560, 590]
-    gra_err, hei_err, fe_arr, fe_emp_arr = analysis_index_correction(ana_idx)
-    print("Gradient mean +- std {:.4f} {:.4f}".format(np.mean(gra_err),
-                                                      np.std(gra_err)))
-    print("Height mean +- std {:.4f} {:.4f}".format(np.mean(hei_err),
-                                                      np.std(hei_err)))
-    print("Fitting error Max Min {:.4f} {:.4f}".format(np.max(fe_arr),
-                                                       np.min(fe_arr)))
-    print("Fitting empty error Max Min {:.4f} {:.4f}".format(np.max(
-        fe_emp_arr), np.min(fe_emp_arr)))
+    hull = spatial.ConvexHull((inter_2d.rays * np.array([1., -1.])))
+    plt.plot(inter_2d.rays[:, 0], inter_2d.rays[:, 1] * -1., '.')
+    for idx, simplex in enumerate(hull.simplices):
+        plt.plot(inter_2d.rays[simplex, 0], inter_2d.rays[simplex, 1] * -1.,
+                 'r-')
+    plt.show()
+
+    # ana_idx = [200, 230, 260, 290, 320, 350, 380, 410, 440, 470, 500,
+    #            530, 560, 590]
+    # gra_err, hei_err, fe_arr, fe_emp_arr = analysis_index_correction(ana_idx)
+    # print("Gradient mean +- std {:.4f} {:.4f}".format(np.mean(gra_err),
+    #                                                   np.std(gra_err)))
+    # print("Height mean +- std {:.4f} {:.4f}".format(np.mean(hei_err),
+    #                                                 np.std(hei_err)))
+    # print("Fitting error Max Min {:.4f} {:.4f}".format(np.max(fe_arr),
+    #                                                    np.min(fe_arr)))
+    # print("Fitting empty error Max Min {:.4f} {:.4f}".format(np.max(
+    #     fe_emp_arr), np.min(fe_emp_arr)))
