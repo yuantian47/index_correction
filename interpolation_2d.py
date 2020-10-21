@@ -21,14 +21,14 @@ class Interpolation2D:
         self.linear_interpolator = None
         self.poly_order = 6
         top_seg_raw = np.array(pd.read_csv(
-            "../data/seg_res/seg_res_bss/result_top_" + str(
+            "../data/seg_res/seg_res_air/result_top_" + str(
                 yidx) + ".csv", header=None))
         bot_seg_raw = np.array(pd.read_csv(
-            "../data/seg_res/seg_res_bss/result_bot_" + str(
+            "../data/seg_res/seg_res_air/result_bot_" + str(
                 yidx) + ".csv", header=None))
         tar_seg_raw = np.array(pd.read_csv(
-            "../data/seg_res/seg_res_bss_target/result_top_" + str(
-                yidx) + ".csv", header=None)) + np.array([0, 300])
+            "../data/seg_res/seg_res_air_target/result_top_" + str(
+                yidx) + ".csv", header=None)) + np.array([0, 200])
         self.top_seg, self.bot_seg = np.zeros((xdim, 2)), np.zeros((xdim, 2))
         self.tar_seg = np.zeros((xdim, 2))
         for i in range(xdim):
@@ -52,7 +52,7 @@ class Interpolation2D:
                                        float(zlength) / self.zdim])
         self.corr_bot_seg_mm = None
         self.corr_tar_seg_mm = None
-        self.images = cv.imread("../data/images/bss_760_crop/0_" + str(
+        self.images = cv.imread("../data/images/air_760_crop/0_" + str(
                 self.yidx) + "_bscan.png",
             cv.IMREAD_GRAYSCALE)
         self.values, self.rays = None, None
@@ -160,10 +160,7 @@ class Interpolation2D:
         return corrected_points
 
     def linear_inter_pairs(self):
-        values = cv.imread(
-            "../data/images/bss_760_crop/0_" + str(
-                self.yidx) + "_bscan.png",
-            cv.IMREAD_GRAYSCALE).transpose()
+        values = self.images.transpose()
         rays = np.zeros((self.xdim, self.zdim, 2))
         print("Building linear interpolation function")
         self.corr_bot_seg_mm = np.zeros_like(self.bot_seg_mm)
@@ -283,7 +280,7 @@ class Interpolation2D:
 
 
 if __name__ == "__main__":
-    inter_2d = Interpolation2D(416, 677, 300, 5.81, 3.67, 1., 1.466, 1.335)
+    inter_2d = Interpolation2D(416, 577, 410, 5.81, 3.13, 1., 1.4745, 1.)
     inter_2d.cal_refract(layer='top')
     inter_2d.linear_inter_pairs()
     img = inter_2d.reconstruction()
