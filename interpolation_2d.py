@@ -21,13 +21,13 @@ class Interpolation2D:
         self.linear_interpolator = None
         self.poly_order = 6
         top_seg_raw = np.array(pd.read_csv(
-            "../data/seg_res/seg_res_bss/result_top_" + str(
+            "../data/seg_res/seg_res_air/result_top_" + str(
                 yidx) + ".csv", header=None))
         bot_seg_raw = np.array(pd.read_csv(
-            "../data/seg_res/seg_res_bss/result_bot_" + str(
+            "../data/seg_res/seg_res_air/result_bot_" + str(
                 yidx) + ".csv", header=None))
         tar_seg_raw = np.array(pd.read_csv(
-            "../data/seg_res/seg_res_bss_target/result_top_" + str(
+            "../data/seg_res/seg_res_air_target/result_top_" + str(
                 yidx) + ".csv", header=None)) + np.array([0, 200])
         emp_seg_raw = np.array(pd.read_csv(
             "../data/seg_res/seg_res_empty_target/result_top_" + str(
@@ -61,7 +61,7 @@ class Interpolation2D:
                                        float(zlength) / self.zdim])
         self.corr_bot_seg_mm = None
         self.corr_tar_seg_mm = None
-        self.images = cv.imread("../data/images/bss_760_crop/0_" + str(
+        self.images = cv.imread("../data/images/air_760_crop/0_" + str(
                 self.yidx) + "_bscan.png",
             cv.IMREAD_GRAYSCALE)
         self.values, self.rays = None, None
@@ -296,21 +296,48 @@ class Interpolation2D:
         return p, fitting_error, p_emp, fitting_error_emp
 
 
+def analysis_index_correction(analysis_list):
+    gradient_error_array = np.zeros(len(analysis_list))
+    height_error_array = np.zeros(len(analysis_list))
+    fe_arr = np.zeros(len(analysis_list))
+    fe_emp_arr = np.zeros(len(analysis_list))
+    for (idx, y_idx) in enumerate(analysis_list):
+        inter_2d = Interpolation2D(416, 577, y_idx, 5.81, 3.13, 1., 1.4745,
+                                   1.)
+        inter_2d.cal_refract(layer='top')
+        inter_2d.linear_inter_pairs()
+        p, fe, p_emp, fe_emp = inter_2d.fit_target_seg()
+        gradient_error = np.absolute(np.arctan(p[0]) - np.arctan(p_emp[0]))
+        height_error = np.absolute(p[1] - p_emp[1])
+        gradient_error_array[idx] = gradient_error
+        height_error_array[idx] = height_error
+        fe_arr[idx], fe_emp_arr[idx] = fe, fe_emp
+    return gradient_error_array, height_error_array, fe_arr, fe_emp_arr
+
+
 if __name__ == "__main__":
-    inter_2d = Interpolation2D(416, 577, 410, 5.81, 3.13, 1., 1.4745, 1.3435)
-    inter_2d.cal_refract(layer='top')
-    inter_2d.linear_inter_pairs()
-    img = inter_2d.reconstruction()
-    plt.imshow(img)
-    plt.show()
+    # inter_2d = Interpolation2D(416, 577, 410, 5.81, 3.13, 1., 1.4745, 1.3435)
+    # inter_2d.cal_refract(layer='top')
+    # inter_2d.linear_inter_pairs()
+    # img = inter_2d.reconstruction()
+    # plt.imshow(img)
+    # plt.show()
+    #
+    # hull = spatial.ConvexHull((inter_2d.rays * np.array([1., -1.])))
+    # plt.plot(inter_2d.rays[:, 0], inter_2d.rays[:, 1] * -1., '.')
+    # for idx, simplex in enumerate(hull.simplices):
+    #     plt.plot(inter_2d.rays[simplex, 0], inter_2d.rays[simplex, 1] * -1.,
+    #              'r-')
+    # plt.show()
 
-    hull = spatial.ConvexHull((inter_2d.rays * np.array([1., -1.])))
-    plt.plot(inter_2d.rays[:, 0], inter_2d.rays[:, 1] * -1., '.')
-    for idx, simplex in enumerate(hull.simplices):
-        plt.plot(inter_2d.rays[simplex, 0], inter_2d.rays[simplex, 1] * -1.,
-                 'r-')
-    plt.show()
-
-    p, fe, p_emp, fe_emp = inter_2d.fit_target_seg()
-    print("Correct target fitting and error:", p, fe)
-    print("Ground truth fitting and error:", p_emp, fe_emp)
+    ana_idx = [200, 230, 260, 290, 320, 350, 380, 410, 440, 470, 500,
+               530, 560, 590]
+    gra_err, hei_err, fe_arr, fe_emp_arr = analysis_index_correction(ana_idx)
+    print("Gradient mean +- std {:.4f} {:.4f}".format(np.mean(gra_err),
+                                                      np.std(gra_err)))
+    print("Height mean +- std {:.4f} {:.4f}".format(np.mean(hei_err),
+                                                      np.std(hei_err)))
+    print("Fitting error Max Min {:.4f} {:.4f}".format(np.max(fe_arr),
+                                                       np.min(fe_arr)))
+    print("Fitting empty error Max Min {:.4f} {:.4f}".format(np.max(
+        fe_emp_arr), np.min(fe_emp_arr)))
