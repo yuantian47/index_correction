@@ -173,11 +173,11 @@ class Interpolation:
 
 if __name__ == "__main__":
     inter = Interpolation("../data/seg_res/seg_res_bss/",
-                          [200, 600], 416, 401, 677, 5.73, 5.0,
-                          3.67, 1., 1.466, 1.3350)
+                          [200, 600], 416, 401, 577, 5.81, 5.0,
+                          3.13, 1., 1.2056, 1.3366)
     inter.nn_inter_pairs()
     inter.grid_inter_pairs('../data/images/bss_760_crop/')
-    img = inter.reconstruction(300)
+    img = inter.reconstruction(140)
     plt.imshow(img)
     plt.show()
 
