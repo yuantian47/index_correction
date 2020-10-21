@@ -279,15 +279,21 @@ class Interpolation2D:
         p, _, _, _, _ = np.polyfit(self.corr_tar_seg_mm[:, 0],
                                    self.corr_tar_seg_mm[:, 1],
                                    1, rcond=False, full=True)
+        p_emp, _, _, _, _ = np.polyfit(self.emp_seg_mm[:, 0],
+                                       self.emp_seg_mm[:, 1],
+                                       1, rcond=False, full=True)
         p_class = np.poly1d(p)
+        p_emp_class = np.poly1d(p_emp)
         seg_fit = np.copy(self.corr_tar_seg_mm)
+        emp_fit = np.copy(self.emp_seg_mm)
         for i in range(seg_fit.shape[0]):
             seg_fit[i][1] = p_class(seg_fit[i][0])
+            emp_fit[i][1] = p_emp_class(emp_fit[i][0])
         fitting_error = np.sum(np.power(self.corr_tar_seg_mm[:, 1] -
                                         seg_fit[:, 1], 2))
-        print("The fitting error for the corrected segmentation is: ",
-              fitting_error)
-        return p, fitting_error
+        fitting_error_emp = np.sum(np.power(self.emp_seg_mm[:, 1] -
+                                            emp_fit[:, 1], 2))
+        return p, fitting_error, p_emp, fitting_error_emp
 
 
 if __name__ == "__main__":
@@ -305,6 +311,6 @@ if __name__ == "__main__":
                  'r-')
     plt.show()
 
-    p, fitting_error = inter_2d.fit_target_seg()
-    print("The fitting coefficient and fitting error for the corrected "
-          "target is: ", p, fitting_error)
+    p, fe, p_emp, fe_emp = inter_2d.fit_target_seg()
+    print("Correct target fitting and error:", p, fe)
+    print("Ground truth fitting and error:", p_emp, fe_emp)
