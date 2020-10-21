@@ -21,16 +21,19 @@ class Interpolation2D:
         self.linear_interpolator = None
         self.poly_order = 6
         top_seg_raw = np.array(pd.read_csv(
-            "../data/seg_res/seg_res_air/result_top_" + str(
+            "../data/seg_res/seg_res_bss/result_top_" + str(
                 yidx) + ".csv", header=None))
         bot_seg_raw = np.array(pd.read_csv(
-            "../data/seg_res/seg_res_air/result_bot_" + str(
+            "../data/seg_res/seg_res_bss/result_bot_" + str(
                 yidx) + ".csv", header=None))
         tar_seg_raw = np.array(pd.read_csv(
-            "../data/seg_res/seg_res_air_target/result_top_" + str(
+            "../data/seg_res/seg_res_bss_target/result_top_" + str(
+                yidx) + ".csv", header=None)) + np.array([0, 200])
+        emp_seg_raw = np.array(pd.read_csv(
+            "../data/seg_res/seg_res_empty_target/result_top_" + str(
                 yidx) + ".csv", header=None)) + np.array([0, 200])
         self.top_seg, self.bot_seg = np.zeros((xdim, 2)), np.zeros((xdim, 2))
-        self.tar_seg = np.zeros((xdim, 2))
+        self.tar_seg, self.emp_seg = np.zeros((xdim, 2)), np.zeros((xdim, 2))
         for i in range(xdim):
             same_x_top = top_seg_raw[list([*np.where(
                 top_seg_raw[:, 0] == i)[0]])]
@@ -41,6 +44,9 @@ class Interpolation2D:
             same_x_tar = tar_seg_raw[list([*np.where(
                 tar_seg_raw[:, 0] == i)[0]])]
             self.tar_seg[i] = same_x_tar[np.argmax(same_x_tar[:, 1])]
+            same_x_emp = emp_seg_raw[list([*np.where(
+                emp_seg_raw[:, 0] == i)[0]])]
+            self.emp_seg[i] = same_x_emp[np.argmax(same_x_emp[:, 1])]
         self.top_seg_mm = np.multiply(self.top_seg,
                                       [float(xlength) / self.xdim,
                                        float(zlength) / self.zdim])
@@ -50,9 +56,12 @@ class Interpolation2D:
         self.tar_seg_mm = np.multiply(self.tar_seg,
                                       [float(xlength) / self.xdim,
                                        float(zlength) / self.zdim])
+        self.emp_seg_mm = np.multiply(self.emp_seg,
+                                      [float(xlength) / self.xdim,
+                                       float(zlength) / self.zdim])
         self.corr_bot_seg_mm = None
         self.corr_tar_seg_mm = None
-        self.images = cv.imread("../data/images/air_760_crop/0_" + str(
+        self.images = cv.imread("../data/images/bss_760_crop/0_" + str(
                 self.yidx) + "_bscan.png",
             cv.IMREAD_GRAYSCALE)
         self.values, self.rays = None, None
@@ -251,6 +260,8 @@ class Interpolation2D:
             img[int(i[1])][int(i[0]) + x_padding] = np.array([255, 0, 0])
         for i in self.bot_seg:
             img[int(i[1])][int(i[0]) + x_padding] = np.array([0, 255, 0])
+        for i in self.emp_seg:
+            img[int(i[1])][int(i[0]) + x_padding] = np.array([0, 0, 255])
         # Visualize fitting segmentation result
         for i, j, k in zip(self.top_fit, self.bot_fit, self.corr_tar_seg_mm):
             img[int((i[1] / self.zlength) * self.zdim)][
@@ -280,7 +291,7 @@ class Interpolation2D:
 
 
 if __name__ == "__main__":
-    inter_2d = Interpolation2D(416, 577, 410, 5.81, 3.13, 1., 1.4745, 1.)
+    inter_2d = Interpolation2D(416, 577, 410, 5.81, 3.13, 1., 1.4745, 1.3435)
     inter_2d.cal_refract(layer='top')
     inter_2d.linear_inter_pairs()
     img = inter_2d.reconstruction()
