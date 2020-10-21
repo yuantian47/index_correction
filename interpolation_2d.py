@@ -302,8 +302,8 @@ def analysis_index_correction(analysis_list):
     fe_arr = np.zeros(len(analysis_list))
     fe_emp_arr = np.zeros(len(analysis_list))
     for (idx, y_idx) in enumerate(analysis_list):
-        inter_2d = Interpolation2D(416, 577, y_idx, 5.81, 3.13, 1., 1.4745,
-                                   1.)
+        inter_2d = Interpolation2D(416, 577, y_idx, 5.81, 3.13, 1.0003, 1.4815,
+                                   1.0003)
         inter_2d.cal_refract(layer='top')
         inter_2d.linear_inter_pairs()
         p, fe, p_emp, fe_emp = inter_2d.fit_target_seg()
@@ -316,7 +316,8 @@ def analysis_index_correction(analysis_list):
 
 
 if __name__ == "__main__":
-    inter_2d = Interpolation2D(416, 577, 200, 5.81, 3.13, 1., 1.4745, 1.)
+    inter_2d = Interpolation2D(416, 577, 200, 5.81, 3.13, 1.0003, 1.4815,
+                               1.0003)
     inter_2d.cal_refract(layer='top')
     inter_2d.linear_inter_pairs()
     img = inter_2d.reconstruction()
