@@ -13,10 +13,11 @@ import csv_pcd
 
 class Interpolation:
     def __init__(self, directory, idx_range, xdim, ydim, zdim, xlength,
-                 ylength, zlength, n1, n2, n3):
+                 ylength, zlength, n1, n2, n3, dp_x, dp_y, dp_z):
         self.xdim, self.ydim, self.zdim = xdim, ydim, zdim
         self.xlength, self.ylength, self.zlength = xlength, ylength, zlength
         self.n1, self.n2, self.n3 = n1, n2, n3
+        self.dp_x, self.dp_y, self.dp_z = dp_x, dp_y, dp_z
         self.directory = directory
         self.idx_range = idx_range
         self.seg = csv_pcd.RealPCD(directory, idx_range, xdim, ydim, zdim,
@@ -44,7 +45,12 @@ class Interpolation:
             point_show_normal=False)
         self.positions_nd, self.values_nd, self.values_gr = None, None, None
         self.nninter, self.gridinter = None, None
-        self.lowest_layer = []
+        self.lowest_layer = np.zeros((((self.xdim // self.dp_x) + 1) *
+                                      ((self.ydim // self.dp_y) + 1), 3))
+        self.left_layer = np.zeros((((self.ydim // self.dp_y) + 1) *
+                                    (self.zdim // self.dp_z), 3))
+        self.right_layer = np.zeros((((self.ydim // self.dp_y) + 1) *
+                                     (self.zdim // self.dp_z), 3))
 
     def grid_inter_pairs(self, imgs_dir):
         values_gr = np.zeros((self.xdim, self.ydim, self.zdim))
@@ -66,30 +72,29 @@ class Interpolation:
         print("Interpolator Built.")
 
     def nn_inter_pairs(self):
-        dp_x = 10
-        dp_y = 10
-        dp_z = 1
-        positions = np.zeros(((self.xdim // dp_x) + 1, (self.ydim // dp_y) + 1,
-                              self.zdim // dp_z, 3))
-        values = np.zeros(((self.xdim // dp_x) + 1, (self.ydim // dp_y) + 1,
-                           self.zdim // dp_z, 3))
-        lowest_layer = []
+        positions = np.zeros(((self.xdim // self.dp_x) + 1,
+                              (self.ydim // self.dp_y) + 1,
+                              self.zdim // self.dp_z, 3))
+        values = np.zeros(((self.xdim // self.dp_x) + 1,
+                           (self.ydim // self.dp_y) + 1,
+                           self.zdim // self.dp_z, 3))
+        record_count = 0
         print("Building interpolation matrix.")
         idx_x, idx_y = 0, 0
         top_smooth_points = np.asarray(self.top_smooth_pcd.points)
         bot_smooth_points = np.asarray(self.bot_smooth_pcd.points)
         bot_points = np.asarray(self.seg.bot_points_mm)
         for i in tqdm(range(top_smooth_points.shape[0])):
-            if idx_y == 41:
+            if idx_y == (self.ydim // self.dp_y) + 1:
                 break
-            if ((i+1)//(self.xdim+1)) % dp_y != 0:
+            if ((i+1)//(self.xdim+1)) % self.dp_y != 0:
                 continue
-            if (i % self.xdim) % dp_x != 0 and (i + 1) % self.xdim != 0:
+            if (i % self.xdim) % self.dp_x != 0 and (i + 1) % self.xdim != 0:
                 continue
             top_refract = self.seg.refracts_top[i]
             bot_refract = self.seg.refracts_bot[i]
             positions[idx_x, idx_y, :, :2] = top_smooth_points[i][:2]
-            z_positions = np.linspace(0, self.zlength, self.zdim // dp_z,
+            z_positions = np.linspace(0, self.zlength, self.zdim // self.dp_z,
                                       endpoint=False)
             positions[idx_x, idx_y, :, 2] = z_positions
             top_point = np.argwhere(z_positions >= top_smooth_points[i][2])
@@ -109,12 +114,12 @@ class Interpolation:
                                             values[idx_x, idx_y,
                                             bot_point[0, 0]:, :],
                                             self.n3 / self.n2)
-            lowest_layer.append(values[idx_x, idx_y, -1, :])
+            self.lowest_layer[record_count, :] = values[idx_x, idx_y, -1, :]
+            record_count += 1
             idx_x += 1
-            if idx_x == self.xdim//dp_x:
+            if idx_x == self.xdim//self.dp_x:
                 idx_y += 1
                 idx_x = 0
-        self.lowest_layer = np.asarray(lowest_layer)
         self.positions_nd, self.values_nd = positions.reshape(
             (-1, 3)), values.reshape((-1, 3))
         self.nninter = \
@@ -174,7 +179,7 @@ class Interpolation:
 if __name__ == "__main__":
     inter = Interpolation("../data/seg_res/seg_res_bss/",
                           [200, 600], 416, 401, 577, 5.81, 5.0,
-                          3.13, 1.0003, 1.4815, 1.3432)
+                          3.13, 1.0003, 1.4815, 1.3432, 10, 10, 1)
     inter.nn_inter_pairs()
     inter.grid_inter_pairs('../data/images/bss_760_crop/')
     img = inter.reconstruction(140)
