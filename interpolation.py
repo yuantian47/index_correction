@@ -174,7 +174,7 @@ class Interpolation:
 if __name__ == "__main__":
     inter = Interpolation("../data/seg_res/seg_res_bss/",
                           [200, 600], 416, 401, 577, 5.81, 5.0,
-                          3.13, 1., 1.2056, 1.3366)
+                          3.13, 1.0003, 1.4815, 1.3432)
     inter.nn_inter_pairs()
     inter.grid_inter_pairs('../data/images/bss_760_crop/')
     img = inter.reconstruction(140)
