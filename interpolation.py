@@ -115,11 +115,16 @@ class Interpolation:
                                             bot_point[0, 0]:, :],
                                             self.n3 / self.n2)
             self.lowest_layer[record_count, :] = values[idx_x, idx_y, -1, :]
-            record_count += 1
+            if idx_x == 0:
+                self.left_layer[(record_count * self.zdim): ((record_count +
+                1) * self.zdim), :] = values[idx_x, idx_y, :, :]
             idx_x += 1
-            if idx_x == self.xdim//self.dp_x:
+            if idx_x == self.xdim//self.dp_x + 1:
+                self.right_layer[(record_count * self.zdim): ((record_count +
+                1) * self.zdim), :] = values[idx_x - 1, idx_y, :, :]
                 idx_y += 1
                 idx_x = 0
+                record_count += 1
         self.positions_nd, self.values_nd = positions.reshape(
             (-1, 3)), values.reshape((-1, 3))
         self.nninter = \
