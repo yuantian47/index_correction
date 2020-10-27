@@ -39,8 +39,13 @@ class Interpolation:
         mesh_frame = \
             o3d.geometry.TriangleMesh.create_coordinate_frame(size=1,
                                                               origin=[0, 0, 0])
+        self.corr_target_pcd = o3d.geometry.PointCloud()
+        self.corr_target_pcd.points = o3d.utility.Vector3dVector(
+            self.target_correction())
+        self.corr_target_pcd.paint_uniform_color([1, 0, 0])
         o3d.visualization.draw_geometries(
-            [self.top_smooth_pcd, self.bot_smooth_pcd, mesh_frame],
+            [self.top_smooth_pcd, self.bot_smooth_pcd, self.corr_target_pcd,
+             mesh_frame],
             window_name="smooth fit a sphere on bottom layer",
             point_show_normal=False)
         self.positions_nd, self.values_nd, self.values_gr = None, None, None
@@ -108,7 +113,7 @@ class Interpolation:
                                             top_smooth_points[i],
                                             positions[idx_x, idx_y,
                                             top_point[0, 0]:, :],
-                                            self.n2)
+                                            self.n2 / self.n1)
             values[idx_x, idx_y, bot_point[0, 0]:, :] = \
                 self.refract_correction_bot(bot_refract,
                                             bot_smooth_points[i],
@@ -144,11 +149,27 @@ class Interpolation:
         return corrected_points
 
     def refract_correction_bot(self, refract, origin, points, group_idx):
-        raw_distance = np.absolute(np.linalg.norm(points - origin, axis=1))
+        raw_distance = np.linalg.norm(points - origin, axis=1)
         distance = raw_distance / group_idx
         corrected_points = origin + \
                            (distance.reshape(distance.shape[0], 1) * refract)
         return corrected_points
+
+    def target_correction(self):
+        raw_distance_top = np.linalg.norm(self.seg.tar_points_mm -
+                                          self.seg.top_points_mm, axis=1)
+        distance_top = raw_distance_top / (self.n2 / self.n1)
+        corrected_top = self.seg.top_points_mm + \
+                        (distance_top.reshape(distance_top.shape[0], 1) *
+                         self.seg.refracts_top)
+        bot_points_mm = np.asarray(self.seg.bot_smooth_pcd.points)
+        raw_distance_bot = np.linalg.norm(corrected_top - bot_points_mm,
+                                          axis=1)
+        distance_bot = raw_distance_bot / (self.n3 / self.n2)
+        corrected_bot = bot_points_mm + \
+                        (distance_bot.reshape(distance_bot.shape[0], 1) *
+                         self.seg.refracts_bot)
+        return corrected_bot
 
     def bot_convexhull_check(self, pos):
         xy_diff_arr = np.subtract(self.lowest_layer[:, :2], pos[:2])
