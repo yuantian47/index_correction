@@ -43,6 +43,8 @@ class Interpolation:
             self.target_correction())
         self.seg.tar_pcd.paint_uniform_color([0, 0, 1])
         self.seg.emp_pcd.paint_uniform_color([0.5, 0.5, 0])
+        self.seg.remove_outlier('tar')
+        self.seg.remove_outlier('emp')
         o3d.visualization.draw_geometries(
             [self.top_smooth_pcd, self.bot_smooth_pcd, self.seg.tar_pcd,
              self.seg.emp_pcd, mesh_frame],
