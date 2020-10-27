@@ -103,6 +103,7 @@ class RealPCD:
                                                    self.zlength) / self.zdim])
             self.top_points[point_idx:point_idx + xdim], self.bot_points[point_idx:point_idx + xdim] = top_seg, bot_seg
             self.tar_points[point_idx:point_idx + xdim] = tar_seg
+            self.emp_points[point_idx:point_idx + xdim] = emp_seg
             self.top_points_mm[point_idx:point_idx + xdim], self.bot_points_mm[point_idx:point_idx + xdim] = \
                 top_seg_mm, bot_seg_mm
             self.tar_points_mm[point_idx:point_idx + xdim] = tar_seg_mm
