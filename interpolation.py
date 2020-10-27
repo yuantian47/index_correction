@@ -161,6 +161,28 @@ class Interpolation:
         else:
             return True
 
+    def left_convexhull_check(self, pos):
+        yz_diff_arr = np.subtract(self.left_layer[:, 1:], pos[1:])
+        yz_dis_arr = np.linalg.norm(yz_diff_arr, axis=1)
+        small_3_idx = np.argpartition(yz_dis_arr, 3)
+        if pos[0] - self.left_layer[small_3_idx[0]][0] < 0 or \
+           pos[0] - self.left_layer[small_3_idx[1]][0] < 0 or \
+           pos[0] - self.left_layer[small_3_idx[2]][0] < 0:
+            return False
+        else:
+            return True
+
+    def right_convexhull_check(self, pos):
+        yz_diff_arr = np.subtract(self.right_layer[:, 1:], pos[1:])
+        yz_dis_arr = np.linalg.norm(yz_diff_arr, axis=1)
+        small_3_idx = np.argpartition(yz_dis_arr, 3)
+        if pos[0] - self.right_layer[small_3_idx[0]][0] > 0 or \
+           pos[0] - self.right_layer[small_3_idx[1]][0] > 0 or \
+           pos[0] - self.right_layer[small_3_idx[2]][0] > 0:
+            return False
+        else:
+            return True
+
     def reconstruction(self, y_idx):
         img = np.full((self.xdim, self.zdim), 255, dtype=np.uint8)
         print("Reconstructing image")
@@ -169,7 +191,9 @@ class Interpolation:
                 pos = np.multiply([i, y_idx, j], [self.xlength/self.xdim,
                                                   self.ylength/self.ydim,
                                                   self.zlength/self.zdim])
-                if self.bot_convexhull_check(pos):
+                if self.bot_convexhull_check(pos) and \
+                        self.left_convexhull_check(pos) and \
+                        self.right_convexhull_check(pos):
                     img[i][j] = np.uint8(self.gridinter(self.nninter(pos)))
         img = cv.cvtColor(img.transpose(), cv.COLOR_GRAY2RGB)
         top_seg = np.array(pd.read_csv(self.directory + "result_top_" +
