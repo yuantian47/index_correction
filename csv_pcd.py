@@ -66,7 +66,9 @@ class RealPCD:
             bot_seg_raw = np.array(pd.read_csv(self.directory + "result_bot_" + str(i) + ".csv", header=None))
             tar_seg_raw = np.array(pd.read_csv(self.directory[:
                                                -1] + "_target/result_top_" +
-                                               str(i) + ".csv", header=None))
+                                               str(i) + ".csv",
+                                               header=None)) + \
+                          np.array([0, 200])
             top_seg, bot_seg = np.zeros((xdim, 3)), np.zeros((xdim, 3))
             tar_seg = np.zeros((xdim, 3))
             for j in range(xdim):

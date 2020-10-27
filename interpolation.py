@@ -42,7 +42,7 @@ class Interpolation:
         self.corr_target_pcd = o3d.geometry.PointCloud()
         self.corr_target_pcd.points = o3d.utility.Vector3dVector(
             self.target_correction())
-        self.corr_target_pcd.paint_uniform_color([1, 0, 0])
+        self.corr_target_pcd.paint_uniform_color([0, 0, 1])
         o3d.visualization.draw_geometries(
             [self.top_smooth_pcd, self.bot_smooth_pcd, self.corr_target_pcd,
              mesh_frame],
