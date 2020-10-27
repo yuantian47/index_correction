@@ -64,7 +64,7 @@ class RealPCD:
         for i in tqdm(range(self.idx_range[0], self.idx_range[1] + 1)):
             top_seg_raw = np.array(pd.read_csv(self.directory + "result_top_" + str(i) + ".csv", header=None))
             bot_seg_raw = np.array(pd.read_csv(self.directory + "result_bot_" + str(i) + ".csv", header=None))
-            tar_seg_raw = np.array(pd.read_csv(self.directory[:,
+            tar_seg_raw = np.array(pd.read_csv(self.directory[:
                                                -1] + "_target/result_top_" +
                                                str(i) + ".csv", header=None))
             top_seg, bot_seg = np.zeros((xdim, 3)), np.zeros((xdim, 3))
@@ -76,7 +76,7 @@ class RealPCD:
                 bot_seg[j] = np.insert(same_x_bot[np.argmax(same_x_bot[:, 1])], 1, i-self.idx_range[0])
                 same_x_tar = tar_seg_raw[list([*np.where(tar_seg_raw[:,
                                                          0] == j)[0]])]
-                tar_seg[j] = np.insert(same_x_top[np.argmax(same_x_tar[:,
+                tar_seg[j] = np.insert(same_x_tar[np.argmax(same_x_tar[:,
                                                             1])], 1,
                                        i-self.idx_range[0])
             top_seg_mm = np.multiply(top_seg, [float(self.xlength) / self.xdim, float(self.ylength) / self.ydim,
