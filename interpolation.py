@@ -43,9 +43,10 @@ class Interpolation:
         self.corr_target_pcd.points = o3d.utility.Vector3dVector(
             self.target_correction())
         self.corr_target_pcd.paint_uniform_color([0, 0, 1])
+        self.seg.emp_pcd.paint_uniform_color([0.5, 0.5, 0])
         o3d.visualization.draw_geometries(
             [self.top_smooth_pcd, self.bot_smooth_pcd, self.corr_target_pcd,
-             mesh_frame],
+             self.seg.emp_pcd, mesh_frame],
             window_name="smooth fit a sphere on bottom layer",
             point_show_normal=False)
         self.positions_nd, self.values_nd, self.values_gr = None, None, None
