@@ -45,7 +45,7 @@ class Interpolation:
             point_show_normal=False)
         self.positions_nd, self.values_nd, self.values_gr = None, None, None
         self.nninter, self.gridinter = None, None
-        self.lowest_layer = np.zeros((((self.xdim // self.dp_x) + 1) *
+        self.lowest_layer = np.zeros((((self.xdim // self.dp_x) + 2) *
                                       ((self.ydim // self.dp_y) + 1), 3))
         self.left_layer = np.zeros((((self.ydim // self.dp_y) + 1) *
                                     (self.zdim // self.dp_z), 3))
@@ -72,13 +72,14 @@ class Interpolation:
         print("Interpolator Built.")
 
     def nn_inter_pairs(self):
-        positions = np.zeros(((self.xdim // self.dp_x) + 1,
+        positions = np.zeros(((self.xdim // self.dp_x) + 2,
                               (self.ydim // self.dp_y) + 1,
                               self.zdim // self.dp_z, 3))
-        values = np.zeros(((self.xdim // self.dp_x) + 1,
+        values = np.zeros(((self.xdim // self.dp_x) + 2,
                            (self.ydim // self.dp_y) + 1,
                            self.zdim // self.dp_z, 3))
         record_count = 0
+        bottom_count = 0
         print("Building interpolation matrix.")
         idx_x, idx_y = 0, 0
         top_smooth_points = np.asarray(self.top_smooth_pcd.points)
@@ -87,7 +88,7 @@ class Interpolation:
         for i in tqdm(range(top_smooth_points.shape[0])):
             if idx_y == (self.ydim // self.dp_y) + 1:
                 break
-            if ((i+1)//(self.xdim+1)) % self.dp_y != 0:
+            if (i // self.xdim) % self.dp_y != 0:
                 continue
             if (i % self.xdim) % self.dp_x != 0 and (i + 1) % self.xdim != 0:
                 continue
@@ -114,12 +115,13 @@ class Interpolation:
                                             values[idx_x, idx_y,
                                             bot_point[0, 0]:, :],
                                             self.n3 / self.n2)
-            self.lowest_layer[record_count, :] = values[idx_x, idx_y, -1, :]
+            self.lowest_layer[bottom_count, :] = values[idx_x, idx_y, -1, :]
+            bottom_count += 1
             if idx_x == 0:
                 self.left_layer[(record_count * self.zdim): ((record_count +
                 1) * self.zdim), :] = values[idx_x, idx_y, :, :]
             idx_x += 1
-            if idx_x == self.xdim//self.dp_x + 1:
+            if idx_x == self.xdim//self.dp_x + 2:
                 self.right_layer[(record_count * self.zdim): ((record_count +
                 1) * self.zdim), :] = values[idx_x - 1, idx_y, :, :]
                 idx_y += 1
@@ -187,7 +189,7 @@ if __name__ == "__main__":
                           3.13, 1.0003, 1.4815, 1.3432, 10, 10, 1)
     inter.nn_inter_pairs()
     inter.grid_inter_pairs('../data/images/bss_760_crop/')
-    img = inter.reconstruction(140)
+    img = inter.reconstruction(240)
     plt.imshow(img)
     plt.show()
 
