@@ -164,6 +164,17 @@ class RealPCD:
                 raise ValueError("Please input valid outlier removal method.")
             display_inlier_outlier(self.tar_pcd, self.tar_ind)
             self.tar_pcd = self.tar_pcd.select_by_index(self.tar_ind)
+        elif layer == 'emp':
+            if method == 'statistical':
+                cl, self.emp_ind = self.emp_pcd.remove_statistical_outlier(
+                    nb_neighbors=neighbors, std_ratio=std_ratio)
+            elif method == 'radius':
+                cl, self.emp_ind = self.emp_pcd.remove_radius_outlier(
+                    nb_points=neighbors, radius=radius)
+            else:
+                raise ValueError("Please input valid outlier removal method.")
+            display_inlier_outlier(self.emp_pcd, self.emp_ind)
+            self.emp_pcd = self.emp_pcd.select_by_index(self.emp_ind)
         else:
             raise ValueError("Please input valid layer's name.")
 

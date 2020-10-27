@@ -39,13 +39,12 @@ class Interpolation:
         mesh_frame = \
             o3d.geometry.TriangleMesh.create_coordinate_frame(size=1,
                                                               origin=[0, 0, 0])
-        self.corr_target_pcd = o3d.geometry.PointCloud()
-        self.corr_target_pcd.points = o3d.utility.Vector3dVector(
+        self.seg.tar_pcd.points = o3d.utility.Vector3dVector(
             self.target_correction())
-        self.corr_target_pcd.paint_uniform_color([0, 0, 1])
+        self.seg.tar_pcd.paint_uniform_color([0, 0, 1])
         self.seg.emp_pcd.paint_uniform_color([0.5, 0.5, 0])
         o3d.visualization.draw_geometries(
-            [self.top_smooth_pcd, self.bot_smooth_pcd, self.corr_target_pcd,
+            [self.top_smooth_pcd, self.bot_smooth_pcd, self.seg.tar_pcd,
              self.seg.emp_pcd, mesh_frame],
             window_name="smooth fit a sphere on bottom layer",
             point_show_normal=False)
