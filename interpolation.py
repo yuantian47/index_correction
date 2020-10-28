@@ -59,6 +59,46 @@ class Interpolation:
         self.right_layer = np.zeros((((self.ydim // self.dp_y) + 1) *
                                      (self.zdim // self.dp_z), 3))
 
+    def svd_fit_plane(self):
+        tar_points = np.asarray(self.seg.tar_pcd.points)
+        emp_points = np.asarray(self.seg.emp_pcd.points)
+        tar_mean = np.mean(tar_points, axis=0)
+        emp_mean = np.mean(emp_points, axis=0)
+        cov_tar = np.cov(tar_points - tar_mean, rowvar=False)
+        cov_emp = np.cov(emp_points - emp_mean, rowvar=False)
+        tar_w, tar_v = np.linalg.eig(cov_tar)
+        tar_normal = tar_v[np.argmin(tar_w)]
+        emp_w, emp_v = np.linalg.eig(cov_emp)
+        emp_normal = emp_v[np.argmin(emp_w)]
+        d_tar = -1 * (tar_normal[0] * tar_mean[0] +
+                      tar_normal[1] * tar_mean[1] +
+                      tar_normal[2] * tar_mean[2])
+        d_emp = -1 * (emp_normal[0] * emp_mean[0] +
+                      emp_normal[1] * emp_mean[1] +
+                      emp_normal[2] * emp_mean[2])
+        fit_tar_pcd = o3d.geometry.PointCloud()
+        fit_tar_points = np.copy(tar_points)
+        fit_tar_points[:, 2] = -1 * (tar_normal[0] * tar_points[:, 0] +
+                                     tar_normal[1] * tar_points[:, 1] +
+                                     d_tar) / tar_normal[2]
+        fit_tar_pcd.points = o3d.utility.Vector3dVector(fit_tar_points)
+        fit_tar_pcd.paint_uniform_color([0, 0, 1])
+        fit_emp_pcd = o3d.geometry.PointCloud()
+        fit_emp_points = np.copy(emp_points)
+        fit_emp_points[:, 2] = -1 * (emp_normal[0] * emp_points[:, 0] +
+                                     emp_normal[1] * emp_points[:, 1] +
+                                     d_emp) / emp_normal[2]
+        fit_emp_pcd.points = o3d.utility.Vector3dVector(fit_emp_points)
+        fit_emp_pcd.paint_uniform_color([0.5, 0.5, 0])
+        mesh_frame = \
+            o3d.geometry.TriangleMesh.create_coordinate_frame(size=1,
+                                                              origin=[0, 0, 0])
+        o3d.visualization.draw_geometries(
+            [self.top_smooth_pcd, self.bot_smooth_pcd, fit_tar_pcd,
+             fit_emp_pcd, mesh_frame],
+            window_name="fit planes on corrected bss target and empty target",
+            point_show_normal=False)
+
     def grid_inter_pairs(self, imgs_dir):
         values_gr = np.zeros((self.xdim, self.ydim, self.zdim))
         print("Building Values Matrix")
@@ -234,10 +274,11 @@ if __name__ == "__main__":
     inter = Interpolation("../data/seg_res/seg_res_bss/",
                           [200, 600], 416, 401, 577, 5.81, 5.0,
                           3.13, 1.0003, 1.4815, 1.3432, 10, 10, 1)
-    inter.nn_inter_pairs()
-    inter.grid_inter_pairs('../data/images/bss_760_crop/')
-    img = inter.reconstruction(240)
-    plt.imshow(img)
-    plt.show()
+    inter.svd_fit_plane()
+    # inter.nn_inter_pairs()
+    # inter.grid_inter_pairs('../data/images/bss_760_crop/')
+    # img = inter.reconstruction(240)
+    # plt.imshow(img)
+    # plt.show()
 
     print("Program Finished.")
