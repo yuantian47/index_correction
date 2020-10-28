@@ -98,6 +98,12 @@ class Interpolation:
              fit_emp_pcd, mesh_frame],
             window_name="fit planes on corrected bss target and empty target",
             point_show_normal=False)
+        if tar_normal[2] * emp_normal[2] < 0:
+            emp_normal *= -1
+        normal_diff = np.arccos(np.dot(tar_normal, emp_normal) /
+                                (np.linalg.norm(tar_normal) *
+                                 np.linalg.norm(emp_normal)))
+        print("The normal difference is {}".format(normal_diff))
 
     def grid_inter_pairs(self, imgs_dir):
         values_gr = np.zeros((self.xdim, self.ydim, self.zdim))
