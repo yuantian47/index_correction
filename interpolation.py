@@ -11,6 +11,12 @@ import matplotlib.pyplot as plt
 import csv_pcd
 
 
+def points_dis2plane(a, b, c, d, pts):
+    dis = np.abs(a * pts[:, 0] + b * pts[:, 1] + c * pts[:, 2] + d) / np.sqrt(
+        np.power(a, 2) + np.power(b, 2) + np.power(c, 2))
+    return dis
+
+
 class Interpolation:
     def __init__(self, directory, idx_range, xdim, ydim, zdim, xlength,
                  ylength, zlength, n1, n2, n3, dp_x, dp_y, dp_z):
@@ -98,12 +104,22 @@ class Interpolation:
              fit_emp_pcd, mesh_frame],
             window_name="fit planes on corrected bss target and empty target",
             point_show_normal=False)
+        dis_tar = points_dis2plane(tar_normal[0], tar_normal[1],
+                                   tar_normal[2], d_tar, tar_points)
+        dis_emp = points_dis2plane(emp_normal[0], emp_normal[1],
+                                   emp_normal[2], d_emp, emp_points)
+        print("BSS target fitting error mean is {:.4f}, std is {:.4f}".format(
+            np.mean(dis_tar), np.std(dis_tar)))
+        print("Empty target fitting error mean is {:.4f}, std is {:.4f}".
+              format(np.mean(dis_emp), np.std(dis_emp)))
         if tar_normal[2] * emp_normal[2] < 0:
             emp_normal *= -1
         normal_diff = np.arccos(np.dot(tar_normal, emp_normal) /
                                 (np.linalg.norm(tar_normal) *
                                  np.linalg.norm(emp_normal)))
-        print("The normal difference is {}".format(normal_diff))
+        print("The normal difference is {:.4f}".format(normal_diff))
+        print("The mean difference of two raw point clouds is {:.4f}".format(
+            np.abs(tar_mean[2] - emp_mean[2])))
 
     def grid_inter_pairs(self, imgs_dir):
         values_gr = np.zeros((self.xdim, self.ydim, self.zdim))
