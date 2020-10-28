@@ -293,14 +293,14 @@ class Interpolation:
 
 
 if __name__ == "__main__":
-    inter = Interpolation("../data/seg_res/seg_res_bss/",
-                          [200, 600], 416, 401, 577, 5.81, 5.0,
-                          3.13, 1.0003, 1.4815, 1.3432, 10, 10, 1)
+    inter = Interpolation("../data/seg_res/seg_res_air/",
+                          [200, 600], 416, 401, 677, 5.81, 5.0,
+                          3.67, 1.0003, 1.4815, 1.0003, 10, 10, 1)
     inter.svd_fit_plane()
-    # inter.nn_inter_pairs()
-    # inter.grid_inter_pairs('../data/images/bss_760_crop/')
-    # img = inter.reconstruction(240)
-    # plt.imshow(img)
-    # plt.show()
+    inter.nn_inter_pairs()
+    inter.grid_inter_pairs('../data/images/air_crop/')
+    img = inter.reconstruction(240)
+    plt.imshow(img)
+    plt.show()
 
     print("Program Finished.")
