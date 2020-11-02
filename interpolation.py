@@ -221,9 +221,11 @@ class Interpolation:
 
     def target_correction(self):
         raw_distance_top = np.linalg.norm(self.seg.tar_points_mm -
-                                          self.seg.top_points_mm, axis=1)
+                                          np.asarray(
+                                              self.seg.top_smooth_pcd.points),
+                                          axis=1)
         distance_top = raw_distance_top / (self.n2 / self.n1)
-        corrected_top = self.seg.top_points_mm + \
+        corrected_top = np.asarray(self.seg.top_smooth_pcd.points) + \
                         (distance_top.reshape(distance_top.shape[0], 1) *
                          self.seg.refracts_top)
         bot_points_mm = np.asarray(self.seg.bot_smooth_pcd.points)
