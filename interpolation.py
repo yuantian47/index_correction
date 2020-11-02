@@ -102,7 +102,7 @@ class Interpolation:
         o3d.visualization.draw_geometries(
             [self.top_smooth_pcd, self.bot_smooth_pcd, fit_tar_pcd,
              fit_emp_pcd, mesh_frame],
-            window_name="fit planes on corrected bss target and empty target",
+            window_name="fit planes on corrected air target and empty target",
             point_show_normal=False)
         dis_tar = points_dis2plane(tar_normal[0], tar_normal[1],
                                    tar_normal[2], d_tar, tar_points)
@@ -268,10 +268,11 @@ class Interpolation:
         else:
             return True
 
-    def reconstruction(self, y_idx):
-        img = np.full((self.xdim, self.zdim), 255, dtype=np.uint8)
+    def reconstruction(self, y_idx, x_padding=10):
+        img = np.full((self.xdim + 2 * x_padding,
+                       self.zdim), 255, dtype=np.uint8)
         print("Reconstructing image")
-        for i in tqdm(range(0, self.xdim)):
+        for i in tqdm(range(-x_padding, self.xdim+x_padding)):
             for j in range(0, self.zdim):
                 pos = np.multiply([i, y_idx, j], [self.xlength/self.xdim,
                                                   self.ylength/self.ydim,
@@ -279,16 +280,19 @@ class Interpolation:
                 if self.bot_convexhull_check(pos) and \
                         self.left_convexhull_check(pos) and \
                         self.right_convexhull_check(pos):
-                    img[i][j] = np.uint8(self.gridinter(self.nninter(pos)))
+                    img[i + x_padding][j] =\
+                        np.uint8(self.gridinter(self.nninter(pos)))
         img = cv.cvtColor(img.transpose(), cv.COLOR_GRAY2RGB)
         top_seg = np.array(pd.read_csv(self.directory + "result_top_" +
                                        str(y_idx+200) + ".csv", header=None))
         bot_seg = np.array(pd.read_csv(self.directory + "result_bot_" +
                                        str(y_idx+200) + ".csv", header=None))
         for i in range(top_seg.shape[0]):
-            img[top_seg[i][1]][top_seg[i][0]] = np.array([255, 0, 0])
+            img[top_seg[i][1]][top_seg[i][0] + x_padding] =\
+                np.array([255, 0, 0])
         for i in range(bot_seg.shape[0]):
-            img[bot_seg[i][1]][bot_seg[i][0]] = np.array([0, 255, 0])
+            img[bot_seg[i][1]][bot_seg[i][0] + x_padding] =\
+                np.array([0, 255, 0])
         return img
 
 
@@ -296,11 +300,14 @@ if __name__ == "__main__":
     inter = Interpolation("../data/seg_res/seg_res_air/",
                           [200, 600], 416, 401, 677, 5.81, 5.0,
                           3.67, 1.0003, 1.4815, 1.0003, 10, 10, 1)
+    # inter = Interpolation("../data/seg_res/seg_res_bss/",
+    #                       [200, 600], 416, 401, 677, 5.81, 5.0,
+    #                       3.67, 1.0003, 1.4815, 1.3432, 10, 10, 1)
     inter.svd_fit_plane()
-    inter.nn_inter_pairs()
-    inter.grid_inter_pairs('../data/images/air_crop/')
-    img = inter.reconstruction(240)
-    plt.imshow(img)
-    plt.show()
+    # inter.nn_inter_pairs()
+    # inter.grid_inter_pairs('../data/images/bss_crop/')
+    # img = inter.reconstruction(240)
+    # plt.imshow(img)
+    # plt.show()
 
     print("Program Finished.")
