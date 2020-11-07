@@ -65,8 +65,18 @@ class RealPCD:
         self.top_ind, self.bot_ind, self.corr_bot_ind = None, None, None
         point_idx = 0
         for i in tqdm(range(self.idx_range[0], self.idx_range[1] + 1)):
-            top_seg_raw = np.array(pd.read_csv(self.directory + "result_top_" + str(i) + ".csv", header=None))
-            bot_seg_raw = np.array(pd.read_csv(self.directory + "result_bot_" + str(i) + ".csv", header=None))
+            top_seg_raw_up = np.array(pd.read_csv(self.directory +
+                                                  "top/result_top_" + str(i) +
+                                                  ".csv", header=None))
+            bot_seg_raw_up = np.array(pd.read_csv(self.directory +
+                                                  "top/result_bot_" + str(i) +
+                                                  ".csv", header=None))
+            top_seg_raw_dn = np.array(pd.read_csv(self.directory +
+                                                  "bot/result_top_" + str(i) +
+                                                  ".csv", header=None))
+            bot_seg_raw_dn = np.array(pd.read_csv(self.directory +
+                                                  "bot/result_bot_" + str(i) +
+                                                  ".csv", header=None))
             tar_seg_raw = np.array(pd.read_csv(self.directory[:
                                                -1] + "_target/result_top_" +
                                                str(i) + ".csv",
@@ -75,14 +85,40 @@ class RealPCD:
             emp_seg_raw = np.array(pd.read_csv(
                 "../data/seg_res/seg_res_empty_target/result_top_" + str(i)
                 + ".csv", header=None)) + np.array([0, 200])
+            top_seg_up, bot_seg_up = np.zeros((xdim, 3)), np.zeros((xdim, 3))
+            top_seg_dn, bot_seg_dn = np.zeros((xdim, 3)), np.zeros((xdim, 3))
             top_seg, bot_seg = np.zeros((xdim, 3)), np.zeros((xdim, 3))
             tar_seg = np.zeros((xdim, 3))
             emp_seg = np.zeros((xdim, 3))
             for j in range(xdim):
-                same_x_top = top_seg_raw[list([*np.where(top_seg_raw[:, 0] == j)[0]])]
-                top_seg[j] = np.insert(same_x_top[np.argmax(same_x_top[:, 1])], 1, i-self.idx_range[0])
-                same_x_bot = bot_seg_raw[list([*np.where(bot_seg_raw[:, 0] == j)[0]])]
-                bot_seg[j] = np.insert(same_x_bot[np.argmax(same_x_bot[:, 1])], 1, i-self.idx_range[0])
+                same_x_top_up = top_seg_raw_up[list([*np.where(
+                    top_seg_raw_up[:, 0] == j)[0]])]
+                top_seg_up[j] = np.insert(same_x_top_up[np.argmax(
+                    same_x_top_up[:, 1])], 1, i-self.idx_range[0])
+                same_x_bot_up = bot_seg_raw_up[list([*np.where(
+                    bot_seg_raw_up[:, 0] == j)[0]])]
+                bot_seg_up[j] = np.insert(same_x_bot_up[np.argmax(
+                    same_x_bot_up[:, 1])], 1, i-self.idx_range[0])
+                same_x_top_dn = top_seg_raw_dn[list([*np.where(
+                    top_seg_raw_dn[:, 0] == j)[0]])]
+                top_seg_dn[j] = np.insert(same_x_top_dn[np.argmax(
+                    same_x_top_dn[:, 1])], 1, i - self.idx_range[0])
+                same_x_bot_dn = bot_seg_raw_dn[list([*np.where(
+                    bot_seg_raw_dn[:, 0] == j)[0]])]
+                bot_seg_dn[j] = np.insert(same_x_bot_dn[np.argmax(
+                    same_x_bot_dn[:, 1])], 1, i - self.idx_range[0])
+                top_seg[j] = top_seg_up[j]
+                bot_seg[j] = bot_seg_up[j]
+                if top_seg_up[j][2] < top_seg_dn[j][2]:
+                    top_seg[j][2] = float(top_seg_up[j][2] + top_seg_dn[j][2])\
+                                    / 2
+                else:
+                    top_seg[j][2] = float(top_seg_up[j][2] + 3)
+                if bot_seg_up[j][2] < bot_seg_dn[j][2]:
+                    bot_seg[j][2] = float(bot_seg_up[j][2] + bot_seg_dn[j][2])\
+                                    / 2
+                else:
+                    bot_seg[j][2] = float(bot_seg_up[j][2] + 3)
                 same_x_tar = tar_seg_raw[list([*np.where(tar_seg_raw[:,
                                                          0] == j)[0]])]
                 tar_seg[j] = np.insert(same_x_tar[np.argmax(same_x_tar[:, 1])],
@@ -91,17 +127,26 @@ class RealPCD:
                                                          0] == j)[0]])]
                 emp_seg[j] = np.insert(same_x_emp[np.argmax(same_x_emp[:, 1])],
                                        1, i - self.idx_range[0])
-            top_seg_mm = np.multiply(top_seg, [float(self.xlength) / self.xdim, float(self.ylength) / self.ydim,
-                                               float(self.zlength) / self.zdim])
-            bot_seg_mm = np.multiply(bot_seg, [float(self.xlength) / self.xdim, float(self.ylength) / self.ydim,
-                                               float(self.zlength) / self.zdim])
-            tar_seg_mm = np.multiply(tar_seg, [float(self.xlength) / self.xdim, float(self.ylength) / self.ydim,
-                                               float(self.zlength) / self.zdim])
-            emp_seg_mm = np.multiply(emp_seg, [float(self.xlength) / self.xdim,
-                                               float(self.ylength) / self.ydim,
-                                               float(
-                                                   self.zlength) / self.zdim])
-            self.top_points[point_idx:point_idx + xdim], self.bot_points[point_idx:point_idx + xdim] = top_seg, bot_seg
+            top_seg_mm = np.multiply(top_seg,
+                                     [float(self.xlength) / self.xdim,
+                                      float(self.ylength) / self.ydim,
+                                      float(self.zlength) / self.zdim])
+            bot_seg_mm = np.multiply(bot_seg,
+                                     [float(self.xlength) / self.xdim,
+                                      float(self.ylength) / self.ydim,
+                                      float(self.zlength) / self.zdim])
+            tar_seg_mm = np.multiply(tar_seg,
+                                     [float(self.xlength) / self.xdim,
+                                      float(self.ylength) / self.ydim,
+                                      float(self.zlength) / self.zdim])
+            emp_seg_mm = np.multiply(emp_seg,
+                                     [float(self.xlength) / self.xdim,
+                                      float(self.ylength) / self.ydim,
+                                      float(self.zlength) / self.zdim])
+            self.top_points[point_idx:point_idx + xdim] = np.asarray(
+                top_seg, dtype=np.int)
+            self.bot_points[point_idx:point_idx + xdim] = np.asarray(
+                bot_seg, dtype=np.int)
             self.tar_points[point_idx:point_idx + xdim] = tar_seg
             self.emp_points[point_idx:point_idx + xdim] = emp_seg
             self.top_points_mm[point_idx:point_idx + xdim], self.bot_points_mm[point_idx:point_idx + xdim] = \
