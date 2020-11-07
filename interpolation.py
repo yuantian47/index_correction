@@ -299,12 +299,12 @@ class Interpolation:
 
 
 if __name__ == "__main__":
-    inter = Interpolation("../data/seg_res/seg_res_air_",
-                          [200, 600], 416, 401, 677, 5.81, 5.0,
-                          3.67, 1.0003, 1.4815, 1.0003, 10, 10, 1)
-    # inter = Interpolation("../data/seg_res/seg_res_bss/",
+    # inter = Interpolation("../data/seg_res/seg_res_air_",
     #                       [200, 600], 416, 401, 677, 5.81, 5.0,
-    #                       3.67, 1.0003, 1.4815, 1.3432, 10, 10, 1)
+    #                       3.67, 1.0003, 1.4815, 1.0003, 10, 10, 1)
+    inter = Interpolation("../data/seg_res/seg_res_bss_",
+                          [200, 600], 416, 401, 677, 5.81, 5.0,
+                          3.67, 1.0003, 1.4815, 1.3432, 10, 10, 1)
     inter.svd_fit_plane()
     # inter.nn_inter_pairs()
     # inter.grid_inter_pairs('../data/images/bss_crop/')
