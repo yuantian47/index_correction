@@ -101,11 +101,11 @@ class RealPCD:
                     same_x_bot_up[:, 1])], 1, i-self.idx_range[0])
                 same_x_top_dn = top_seg_raw_dn[list([*np.where(
                     top_seg_raw_dn[:, 0] == j)[0]])]
-                top_seg_dn[j] = np.insert(same_x_top_dn[np.argmax(
+                top_seg_dn[j] = np.insert(same_x_top_dn[np.argmin(
                     same_x_top_dn[:, 1])], 1, i - self.idx_range[0])
                 same_x_bot_dn = bot_seg_raw_dn[list([*np.where(
                     bot_seg_raw_dn[:, 0] == j)[0]])]
-                bot_seg_dn[j] = np.insert(same_x_bot_dn[np.argmax(
+                bot_seg_dn[j] = np.insert(same_x_bot_dn[np.argmin(
                     same_x_bot_dn[:, 1])], 1, i - self.idx_range[0])
                 top_seg[j] = top_seg_up[j]
                 bot_seg[j] = bot_seg_up[j]
