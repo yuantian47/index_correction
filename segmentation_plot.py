@@ -37,27 +37,31 @@ def seg_plot(segdir, imdir, idx, xdim):
         if top_seg_up[j][1] < top_seg_dn[j][1]:
             top_seg[j][1] = float(top_seg_up[j][1] + top_seg_dn[j][1]) / 2
         else:
-            top_seg[j][1] = float(top_seg_up[j][1] + 3)
+            top_seg[j][1] = float(top_seg_dn[j][1] - 3)
         if bot_seg_up[j][1] < bot_seg_dn[j][1]:
             bot_seg[j][1] = float(bot_seg_up[j][1] + bot_seg_dn[j][1]) / 2
         else:
-            bot_seg[j][1] = float(bot_seg_up[j][1] + 3)
+            bot_seg[j][1] = float(bot_seg_dn[j][1] - 3)
     img = cv.imread(imdir + "0_" + str(idx) + "_bscan.png",
                     cv.IMREAD_COLOR)
     for i in range(xdim):
-        img[top_seg_raw_up[i][1]][top_seg_raw_up[i][0]] = np.array([255, 0, 0])
-        img[top_seg_raw_dn[i][1]][top_seg_raw_dn[i][0]] = np.array([0, 0, 255])
+        img[int(top_seg_up[i][1])][int(top_seg_up[i][0])] =\
+            np.array([255, 0, 0])
+        img[int(top_seg_dn[i][1])][int(top_seg_dn[i][0])] =\
+            np.array([0, 0, 255])
         img[int(top_seg[i][1])][int(top_seg[i][0])] = np.array([255, 255, 0])
-        img[bot_seg_raw_up[i][1]][bot_seg_raw_up[i][0]] = np.array([255, 0, 0])
-        img[bot_seg_raw_dn[i][1]][bot_seg_raw_dn[i][0]] = np.array([0, 0, 255])
+        img[int(bot_seg_up[i][1])][int(bot_seg_up[i][0])] =\
+            np.array([255, 0, 0])
+        img[int(bot_seg_dn[i][1])][int(bot_seg_dn[i][0])] =\
+            np.array([0, 0, 255])
         img[int(bot_seg[i][1])][int(bot_seg[i][0])] = np.array([255, 255, 0])
     return img
 
 
 if __name__ == "__main__":
-    segdir = "../data/seg_res/seg_res_air_"
-    imdir = "../data/images/air_crop/"
-    vis_dir = "../data/images/vis_seg_air/"
+    segdir = "../data/seg_res/seg_res_bss_"
+    imdir = "../data/images/bss_crop/"
+    vis_dir = "../data/images/vis_seg_bss/"
     if os.path.isdir(vis_dir) is False:
         os.makedirs(vis_dir)
     for k in tqdm(range(200, 601)):

@@ -113,12 +113,12 @@ class RealPCD:
                     top_seg[j][2] = float(top_seg_up[j][2] + top_seg_dn[j][2])\
                                     / 2
                 else:
-                    top_seg[j][2] = float(top_seg_up[j][2] + 3)
+                    top_seg[j][2] = float(top_seg_up[j][2] - 3)
                 if bot_seg_up[j][2] < bot_seg_dn[j][2]:
                     bot_seg[j][2] = float(bot_seg_up[j][2] + bot_seg_dn[j][2])\
                                     / 2
                 else:
-                    bot_seg[j][2] = float(bot_seg_up[j][2] + 3)
+                    bot_seg[j][2] = float(bot_seg_dn[j][2] - 3)
                 same_x_tar = tar_seg_raw[list([*np.where(tar_seg_raw[:,
                                                          0] == j)[0]])]
                 tar_seg[j] = np.insert(same_x_tar[np.argmax(same_x_tar[:, 1])],
