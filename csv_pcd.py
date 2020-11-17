@@ -66,22 +66,21 @@ class RealPCD:
         point_idx = 0
         for i in tqdm(range(self.idx_range[0], self.idx_range[1] + 1)):
             top_seg_raw_up = np.array(pd.read_csv(self.directory +
-                                                  "top/result_top_" + str(i) +
+                                                  "/result_top_up_" + str(i) +
                                                   ".csv", header=None))
             bot_seg_raw_up = np.array(pd.read_csv(self.directory +
-                                                  "top/result_bot_" + str(i) +
+                                                  "/result_bot_up_" + str(i) +
                                                   ".csv", header=None))
             top_seg_raw_dn = np.array(pd.read_csv(self.directory +
-                                                  "bot/result_top_" + str(i) +
+                                                  "/result_top_dn_" + str(i) +
                                                   ".csv", header=None))
             bot_seg_raw_dn = np.array(pd.read_csv(self.directory +
-                                                  "bot/result_bot_" + str(i) +
+                                                  "/result_bot_dn_" + str(i) +
                                                   ".csv", header=None))
-            tar_seg_raw = np.array(pd.read_csv(self.directory[:
-                                               -1] + "_target/result_top_" +
+            tar_seg_raw = np.array(pd.read_csv(self.directory +
+                                               "/result_tar_" +
                                                str(i) + ".csv",
-                                               header=None)) + \
-                          np.array([0, 200])
+                                               header=None))
             emp_seg_raw = np.array(pd.read_csv(
                 "../data/seg_res/seg_res_empty_target/result_top_" + str(i)
                 + ".csv", header=None)) + np.array([0, 200])
