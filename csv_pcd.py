@@ -82,8 +82,8 @@ class RealPCD:
                                                str(i) + ".csv",
                                                header=None))
             emp_seg_raw = np.array(pd.read_csv(
-                "../data/seg_res/seg_res_empty_target/result_top_" + str(i)
-                + ".csv", header=None)) + np.array([0, 200])
+                "../data/seg_res/1117_6/seg_res_tar/result_top_" + str(i)
+                + ".csv", header=None) + np.array([0, 200]))
             top_seg_up, bot_seg_up = np.zeros((xdim, 3)), np.zeros((xdim, 3))
             top_seg_dn, bot_seg_dn = np.zeros((xdim, 3)), np.zeros((xdim, 3))
             top_seg, bot_seg = np.zeros((xdim, 3)), np.zeros((xdim, 3))

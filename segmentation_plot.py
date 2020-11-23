@@ -8,13 +8,13 @@ import os
 
 
 def seg_plot(segdir, imdir, idx, xdim):
-    top_seg_raw_up = np.array(pd.read_csv(segdir + "top/result_top_" +
+    top_seg_raw_up = np.array(pd.read_csv(segdir + "/result_top_up_" +
                                           str(idx) + ".csv", header=None))
-    bot_seg_raw_up = np.array(pd.read_csv(segdir + "top/result_bot_" +
+    bot_seg_raw_up = np.array(pd.read_csv(segdir + "/result_bot_up_" +
                                           str(idx) + ".csv", header=None))
-    top_seg_raw_dn = np.array(pd.read_csv(segdir + "bot/result_top_" +
+    top_seg_raw_dn = np.array(pd.read_csv(segdir + "/result_top_dn_" +
                                           str(idx) + ".csv", header=None))
-    bot_seg_raw_dn = np.array(pd.read_csv(segdir + "bot/result_bot_" +
+    bot_seg_raw_dn = np.array(pd.read_csv(segdir + "/result_bot_dn_" +
                                           str(idx) + ".csv", header=None))
     top_seg_up, bot_seg_up = np.zeros((xdim, 2)), np.zeros((xdim, 2))
     top_seg_dn, bot_seg_dn = np.zeros((xdim, 2)), np.zeros((xdim, 2))
@@ -59,9 +59,9 @@ def seg_plot(segdir, imdir, idx, xdim):
 
 
 if __name__ == "__main__":
-    segdir = "../data/seg_res/seg_res_bss_"
-    imdir = "../data/images/bss_crop/"
-    vis_dir = "../data/images/vis_seg_bss/"
+    segdir = "../data/seg_res/1117_2/seg_res_air"
+    imdir = "../data/images/1117_2/air_crop/"
+    vis_dir = "../data/images/1117_2/vis_seg_air/"
     if os.path.isdir(vis_dir) is False:
         os.makedirs(vis_dir)
     for k in tqdm(range(200, 601)):
