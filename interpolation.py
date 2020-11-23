@@ -3,6 +3,7 @@ import pandas as pd
 import open3d as o3d
 from tqdm import tqdm
 import scipy.interpolate
+import scipy.linalg
 import cv2 as cv
 import matplotlib
 matplotlib.use("TkAgg")
@@ -72,9 +73,9 @@ class Interpolation:
         emp_mean = np.mean(emp_points, axis=0)
         cov_tar = np.cov(tar_points - tar_mean, rowvar=False)
         cov_emp = np.cov(emp_points - emp_mean, rowvar=False)
-        tar_w, tar_v = np.linalg.eig(cov_tar)
+        tar_w, tar_v = np.linalg.eigh(cov_tar, UPLO='U')
         tar_normal = tar_v[np.argmin(tar_w)]
-        emp_w, emp_v = np.linalg.eig(cov_emp)
+        emp_w, emp_v = np.linalg.eigh(cov_emp, UPLO='U')
         emp_normal = emp_v[np.argmin(emp_w)]
         d_tar = -1 * (tar_normal[0] * tar_mean[0] +
                       tar_normal[1] * tar_mean[1] +
@@ -302,13 +303,13 @@ if __name__ == "__main__":
     # inter = Interpolation("../data/seg_res/seg_res_air_",
     #                       [200, 600], 416, 401, 677, 5.81, 5.0,
     #                       3.67, 1.0003, 1.4815, 1.0003, 10, 10, 1)
-    # inter = Interpolation("../data/seg_res/seg_res_bss_",
+    # inter = Interpolation("../data/seg_res/seg_res_bss",
     #                       [200, 600], 416, 401, 677, 5.81, 5.0,
     #                       3.67, 1.0003, 1.4815, 1.3432, 10, 10, 1)
-    inter = Interpolation("../data/seg_res/seg_res_new_air",
+    inter = Interpolation("../data/seg_res/1117_6/seg_res_air",
                           [200, 600], 416, 401, 677, 5.81, 5.0,
                           3.67, 1.0003, 1.4815, 1.0003, 10, 10, 1)
-    # inter = Interpolation("../data/seg_res/seg_res",
+    # inter = Interpolation("../data/seg_res/1117_1/seg_res_bss",
     #                       [200, 600], 416, 401, 677, 5.81, 5.0,
     #                       3.67, 1.0003, 1.4815, 1.3432, 10, 10, 1)
     inter.svd_fit_plane()
