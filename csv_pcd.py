@@ -3,6 +3,7 @@ import pandas as pd
 import open3d as o3d
 from tqdm import tqdm
 import padasip as pa
+from scipy import interpolate
 
 import normal_calculation as nc
 
@@ -240,7 +241,8 @@ class RealPCD:
     def pcd_fit_sphere(self, layer='top', method='lms'):
         if method == 'ls':
             if layer == 'top':
-                top_points_mm_s = np.array(np.asarray(self.top_pcd.points), copy=True)
+                top_points_mm_s = np.array(np.asarray(self.top_pcd.points),
+                                           copy=True)
                 co_mat = np.zeros((top_points_mm_s.shape[0], 4))
                 co_mat[:, 0] = top_points_mm_s[:, 0] * 2
                 co_mat[:, 1] = top_points_mm_s[:, 1] * 2
@@ -250,15 +252,21 @@ class RealPCD:
                 ordinate[:, 0] = np.sum(np.power(top_points_mm_s, 2), axis=1)
                 res, err, _, _ = np.linalg.lstsq(co_mat, ordinate, rcond=None)
                 print("The error is:", err)
-                rad = np.sqrt(res[0] * res[0] + res[1] * res[1] + res[2] * res[2] + res[3])
+                rad = np.sqrt(res[0] * res[0] +
+                              res[1] * res[1] +
+                              res[2] * res[2] + res[3])
                 print("The radius is: {}".format(rad))
-                top_points_mm_s = np.array(np.asarray(self.top_points_mm), copy=True)
+                top_points_mm_s = np.array(np.asarray(self.top_points_mm),
+                                           copy=True)
                 for i in range(top_points_mm_s.shape[0]):
-                    top_points_mm_s[i, 2] = -np.sqrt(np.power(rad, 2) -
-                                                     np.power(top_points_mm_s[i, 0] - res[0], 2) -
-                                                     np.power(top_points_mm_s[i, 1] - res[1], 2)) + res[2]
+                    top_points_mm_s[i, 2] = \
+                        -np.sqrt(np.power(rad, 2) -
+                                 np.power(top_points_mm_s[i, 0] - res[0], 2) -
+                                 np.power(top_points_mm_s[i, 1] - res[1],
+                                          2)) + res[2]
                 self.top_smooth_pcd = o3d.geometry.PointCloud()
-                self.top_smooth_pcd.points = o3d.utility.Vector3dVector(top_points_mm_s)
+                self.top_smooth_pcd.points =\
+                    o3d.utility.Vector3dVector(top_points_mm_s)
                 self.top_smooth_pcd.estimate_normals(search_param=o3d.geometry.KDTreeSearchParamKNN(knn=100),
                                             fast_normal_computation=False)
                 self.top_smooth_pcd.orient_normals_to_align_with_direction(np.array([0.0, 0.0, -1.0]))
@@ -312,6 +320,48 @@ class RealPCD:
                                             fast_normal_computation=False)
                 self.top_smooth_pcd.orient_normals_to_align_with_direction(np.array([0.0, 0.0, -1.0]))
                 self.top_smooth_pcd.normalize_normals()
+
+    def pcd_fit_spline(self, layer='top'):
+        if layer == 'top':
+            dp_top_pcd = self.top_pcd.voxel_down_sample(0.1)
+            dp_top_points_mm_s = np.array(np.asarray(dp_top_pcd.points),
+                                          copy=True)
+            top_points_mm_s = np.array(np.asarray(self.top_pcd.points),
+                                       copy=True)
+            tck = interpolate.bisplrep(dp_top_points_mm_s[:, 0],
+                                       dp_top_points_mm_s[:, 1],
+                                       dp_top_points_mm_s[:, 2],
+                                       s=0)
+            z_new =interpolate.bisplev(top_points_mm_s[:, 0],
+                                       top_points_mm_s[:, 1],
+                                       tck)
+            top_points_mm_s[:, 2] = z_new
+            self.top_smooth_pcd = o3d.geometry.PointCloud()
+            self.top_smooth_pcd.points =\
+                o3d.utility.Vector3dVector(top_points_mm_s)
+            self.top_smooth_pcd.estimate_normals(search_param=o3d.geometry.KDTreeSearchParamKNN(knn=100),
+                                        fast_normal_computation=False)
+            self.top_smooth_pcd.orient_normals_to_align_with_direction(np.array([0.0, 0.0, -1.0]))
+            self.top_smooth_pcd.normalize_normals()
+        elif layer == 'bot':
+            dp_bot_pcd = self.corrected_bot_pcd.voxel_down_sample(0.1)
+            dp_bot_points_mm_s = np.array(np.asarray(dp_bot_pcd.points),
+                                          copy=True)
+            bot_points_mm_s = np.array(np.asarray(self.corrected_bot_pcd.points), copy=True)
+            tck = interpolate.bisplrep(dp_bot_points_mm_s[:, 0],
+                                       dp_bot_points_mm_s[:, 1],
+                                       dp_bot_points_mm_s[:, 2],
+                                       s=0)
+            z_new = interpolate.bisplev(bot_points_mm_s[:, 0],
+                                        bot_points_mm_s[:, 1],
+                                        tck)
+            bot_points_mm_s[:, 2] = z_new
+            self.bot_smooth_pcd = o3d.geometry.PointCloud()
+            self.bot_smooth_pcd.points = o3d.utility.Vector3dVector(bot_points_mm_s)
+            self.bot_smooth_pcd.estimate_normals(search_param=o3d.geometry.KDTreeSearchParamKNN(knn=100),
+                                                 fast_normal_computation=False)
+            self.bot_smooth_pcd.orient_normals_to_align_with_direction(np.array([0.0, 0.0, -1.0]))
+            self.bot_smooth_pcd.normalize_normals()
 
     def cal_normal(self, layer="top", method="marcos"):
         if method == "marcos":
