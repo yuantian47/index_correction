@@ -325,42 +325,53 @@ class RealPCD:
         if layer == 'top':
             top_points_mm_s = np.array(np.asarray(self.top_pcd.points),
                                        copy=True)
-            z_grid = np.zeros((self.xdim, self.ydim))
-            for point_idx in range(0,
-                                   self.idx_range[1] - self.idx_range[0] + 1):
-                z_grid[:, point_idx] = top_points_mm_s[point_idx:point_idx +
-                                                                 self.xdim, 2]
-            x = np.arange(0, self.xdim) * (float(self.xlength) / self.xdim)
-            y = np.arange(0, self.ydim) * (float(self.ylength) / self.ydim)
-            spline = interpolate.RectBivariateSpline(x, y, z_grid)
-            z_spline = spline(x, y)
-            z = np.zeros(top_points_mm_s.shape[0])
-            for point_idx in range(0,
-                                   self.idx_range[1] - self.idx_range[0] + 1):
-                z[point_idx*self.xdim:(point_idx+1)*self.xdim] =\
-                    z_spline[:, point_idx]
-            top_points_mm_s[:, 2] = z
+            points_mm_s = np.array(np.asarray(self.top_points_mm), copy=True)
+            spline = interpolate.SmoothBivariateSpline(top_points_mm_s[:, 0],
+                                                       top_points_mm_s[:, 1],
+                                                       top_points_mm_s[:, 2],
+                                                       bbox=[0,
+                                                             np.max(
+                                                                 points_mm_s[:,
+                                                                 0]),
+                                                             0,
+                                                             np.max(
+                                                                 points_mm_s[:,
+                                                                 1])],
+                                                       s=1)
+            for idx in tqdm(range(points_mm_s.shape[0])):
+                points_mm_s[idx, 2] =\
+                    spline(points_mm_s[idx, 0],
+                           points_mm_s[idx, 1])
             self.top_smooth_pcd = o3d.geometry.PointCloud()
             self.top_smooth_pcd.points =\
-                o3d.utility.Vector3dVector(top_points_mm_s)
+                o3d.utility.Vector3dVector(points_mm_s)
             self.top_smooth_pcd.estimate_normals(search_param=o3d.geometry.KDTreeSearchParamKNN(knn=100),
                                         fast_normal_computation=False)
             self.top_smooth_pcd.orient_normals_to_align_with_direction(np.array([0.0, 0.0, -1.0]))
             self.top_smooth_pcd.normalize_normals()
         elif layer == 'bot':
-            dp_bot_pcd = self.corrected_bot_pcd.voxel_down_sample(0.1)
-            dp_bot_points_mm_s = np.array(np.asarray(dp_bot_pcd.points),
-                                          copy=True)
-            bot_points_mm_s = np.array(np.asarray(self.corrected_bot_pcd.points), copy=True)
-            tck = interpolate.bisplrep(dp_bot_points_mm_s[:, 0],
-                                       dp_bot_points_mm_s[:, 1],
-                                       dp_bot_points_mm_s[:, 2])
-            z_new = interpolate.bisplev(dp_bot_points_mm_s[:, 0],
-                                        dp_bot_points_mm_s[:, 1],
-                                        tck)
-            dp_bot_points_mm_s[:, 2] = z_new
+            bot_points_mm_s = np.array(np.asarray(
+                self.corrected_bot_pcd.points),
+                                       copy=True)
+            points_mm_s = np.array(np.asarray(self.bot_points_mm), copy=True)
+            spline = interpolate.SmoothBivariateSpline(bot_points_mm_s[:, 0],
+                                                       bot_points_mm_s[:, 1],
+                                                       bot_points_mm_s[:, 2],
+                                                       bbox=[0,
+                                                             np.max(
+                                                                 points_mm_s[:,
+                                                                 0]),
+                                                             0,
+                                                             np.max(
+                                                                 points_mm_s[:,
+                                                                 1])],
+                                                       s=1)
+            for idx in tqdm(range(points_mm_s.shape[0])):
+                points_mm_s[idx, 2] = \
+                    spline(points_mm_s[idx, 0],
+                           points_mm_s[idx, 1])
             self.bot_smooth_pcd = o3d.geometry.PointCloud()
-            self.bot_smooth_pcd.points = o3d.utility.Vector3dVector(bot_points_mm_s)
+            self.bot_smooth_pcd.points = o3d.utility.Vector3dVector(points_mm_s)
             self.bot_smooth_pcd.estimate_normals(search_param=o3d.geometry.KDTreeSearchParamKNN(knn=100),
                                                  fast_normal_computation=False)
             self.bot_smooth_pcd.orient_normals_to_align_with_direction(np.array([0.0, 0.0, -1.0]))
