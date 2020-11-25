@@ -323,19 +323,23 @@ class RealPCD:
 
     def pcd_fit_spline(self, layer='top'):
         if layer == 'top':
-            dp_top_pcd = self.top_pcd.voxel_down_sample(0.1)
-            dp_top_points_mm_s = np.array(np.asarray(dp_top_pcd.points),
-                                          copy=True)
             top_points_mm_s = np.array(np.asarray(self.top_pcd.points),
                                        copy=True)
-            tck = interpolate.bisplrep(dp_top_points_mm_s[:, 0],
-                                       dp_top_points_mm_s[:, 1],
-                                       dp_top_points_mm_s[:, 2],
-                                       s=0)
-            z_new =interpolate.bisplev(top_points_mm_s[:, 0],
-                                       top_points_mm_s[:, 1],
-                                       tck)
-            top_points_mm_s[:, 2] = z_new
+            z_grid = np.zeros((self.xdim, self.ydim))
+            for point_idx in range(0,
+                                   self.idx_range[1] - self.idx_range[0] + 1):
+                z_grid[:, point_idx] = top_points_mm_s[point_idx:point_idx +
+                                                                 self.xdim, 2]
+            x = np.arange(0, self.xdim) * (float(self.xlength) / self.xdim)
+            y = np.arange(0, self.ydim) * (float(self.ylength) / self.ydim)
+            spline = interpolate.RectBivariateSpline(x, y, z_grid)
+            z_spline = spline(x, y)
+            z = np.zeros(top_points_mm_s.shape[0])
+            for point_idx in range(0,
+                                   self.idx_range[1] - self.idx_range[0] + 1):
+                z[point_idx*self.xdim:(point_idx+1)*self.xdim] =\
+                    z_spline[:, point_idx]
+            top_points_mm_s[:, 2] = z
             self.top_smooth_pcd = o3d.geometry.PointCloud()
             self.top_smooth_pcd.points =\
                 o3d.utility.Vector3dVector(top_points_mm_s)
@@ -350,12 +354,11 @@ class RealPCD:
             bot_points_mm_s = np.array(np.asarray(self.corrected_bot_pcd.points), copy=True)
             tck = interpolate.bisplrep(dp_bot_points_mm_s[:, 0],
                                        dp_bot_points_mm_s[:, 1],
-                                       dp_bot_points_mm_s[:, 2],
-                                       s=0)
-            z_new = interpolate.bisplev(bot_points_mm_s[:, 0],
-                                        bot_points_mm_s[:, 1],
+                                       dp_bot_points_mm_s[:, 2])
+            z_new = interpolate.bisplev(dp_bot_points_mm_s[:, 0],
+                                        dp_bot_points_mm_s[:, 1],
                                         tck)
-            bot_points_mm_s[:, 2] = z_new
+            dp_bot_points_mm_s[:, 2] = z_new
             self.bot_smooth_pcd = o3d.geometry.PointCloud()
             self.bot_smooth_pcd.points = o3d.utility.Vector3dVector(bot_points_mm_s)
             self.bot_smooth_pcd.estimate_normals(search_param=o3d.geometry.KDTreeSearchParamKNN(knn=100),
