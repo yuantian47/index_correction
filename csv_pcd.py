@@ -337,7 +337,10 @@ class RealPCD:
                                                              np.max(
                                                                  points_mm_s[:,
                                                                  1])],
-                                                       s=1)
+                                                       kx=1, ky=1, s=2)
+            print("The spline coefficients:", spline.get_coeffs())
+            print("The spline knots:", spline.get_knots())
+            print("Spline fitting residual:", spline.get_residual())
             for idx in tqdm(range(points_mm_s.shape[0])):
                 points_mm_s[idx, 2] =\
                     spline(points_mm_s[idx, 0],
@@ -365,7 +368,10 @@ class RealPCD:
                                                              np.max(
                                                                  points_mm_s[:,
                                                                  1])],
-                                                       s=1)
+                                                       kx=1, ky=1, s=2)
+            print("The spline coefficients:", spline.get_coeffs())
+            print("The spline knots:", spline.get_knots())
+            print("Spline fitting residual:", spline.get_residual())
             for idx in tqdm(range(points_mm_s.shape[0])):
                 points_mm_s[idx, 2] = \
                     spline(points_mm_s[idx, 0],
