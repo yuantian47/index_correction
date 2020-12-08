@@ -305,9 +305,9 @@ class Interpolation:
                     img[i + x_padding][j] =\
                         np.uint8(self.gridinter(self.nninter(pos)))
         img = cv.cvtColor(img.transpose(), cv.COLOR_GRAY2RGB)
-        top_seg = np.array(pd.read_csv(self.directory + "result_top_" +
+        top_seg = np.array(pd.read_csv(self.directory + "/result_top_up_" +
                                        str(y_idx+200) + ".csv", header=None))
-        bot_seg = np.array(pd.read_csv(self.directory + "result_bot_" +
+        bot_seg = np.array(pd.read_csv(self.directory + "/result_bot_up_" +
                                        str(y_idx+200) + ".csv", header=None))
         for i in range(top_seg.shape[0]):
             img[top_seg[i][1]][top_seg[i][0] + x_padding] =\
@@ -319,19 +319,19 @@ class Interpolation:
 
 
 if __name__ == "__main__":
-    inter = Interpolation("../data/seg_res/6/air_seg_res",
-                          [200, 600], 416, 401, 677, 5.843, 5.013,
-                          3.629, 1.0003, 1.4815, 1.0003, 10, 10, 1)
-    inter.svd_fit_plane()
-    print("\n ******************** \n")
+    # inter = Interpolation("../data/seg_res/6/air_seg_res",
+    #                       [200, 600], 416, 401, 677, 5.843, 5.013,
+    #                       3.629, 1.0003, 1.4815, 1.0003, 10, 10, 1)
+    # inter.svd_fit_plane()
+    # print("\n ******************** \n")
     inter = Interpolation("../data/seg_res/6/bss_seg_res",
                           [200, 600], 416, 401, 677, 5.843, 5.013,
                           3.629, 1.0003, 1.4815, 1.3432, 10, 10, 1)
     inter.svd_fit_plane()
-    # inter.nn_inter_pairs()
-    # inter.grid_inter_pairs('../data/images/bss_crop/')
-    # img = inter.reconstruction(240)
-    # plt.imshow(img)
-    # plt.show()
+    inter.nn_inter_pairs()
+    inter.grid_inter_pairs('../data/seg_res/6/6_bss_crop/')
+    img = inter.reconstruction(240)
+    plt.imshow(img)
+    plt.show()
 
     print("Program Finished.")
