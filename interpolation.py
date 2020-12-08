@@ -31,34 +31,34 @@ class Interpolation:
                                    xlength, ylength, zlength, n1, n2, n3)
         self.seg.remove_outlier(layer='top')
         self.seg.pcd_fit_sphere(method='ls')
-        tmp_pcd = self.seg.get_top_smooth_pcd()
-        tmp_pcd.paint_uniform_color([0, 1, 0])
-        self.seg.pcd_fit_spline(layer='top')
+        # tmp_pcd = self.seg.get_top_smooth_pcd()
+        # tmp_pcd.paint_uniform_color([0, 1, 0])
+        # self.seg.pcd_fit_spline(layer='top')
         self.top_smooth_pcd = self.seg.get_top_smooth_pcd()
         self.top_smooth_pcd.paint_uniform_color([1, 0, 0])
-        mean_dis = np.mean(np.abs(np.asarray(self.top_smooth_pcd.points) -
-                                  np.asarray(tmp_pcd.points)), axis=0)
-        print("Anterior mean distance is :", mean_dis)
-        mesh_frame = \
-            o3d.geometry.TriangleMesh.create_coordinate_frame(size=1,
-                                                              origin=[0, 0, 0])
-        o3d.visualization.draw_geometries([self.top_smooth_pcd, tmp_pcd,
-                                           mesh_frame])
+        # mean_dis = np.mean(np.abs(np.asarray(self.top_smooth_pcd.points) -
+        #                           np.asarray(tmp_pcd.points)), axis=0)
+        # print("Anterior mean distance is :", mean_dis)
+        # mesh_frame = \
+        #     o3d.geometry.TriangleMesh.create_coordinate_frame(size=1,
+        #                                                       origin=[0, 0, 0])
+        # o3d.visualization.draw_geometries([self.top_smooth_pcd, tmp_pcd,
+        #                                    mesh_frame])
         self.seg.ray_tracing(np.repeat([[0.0, 0.0, 1.0]], np.asarray(
             self.top_smooth_pcd.points).shape[0], axis=0))
         self.seg.refraction_correction()
         self.seg.remove_outlier(layer='corrected_bot')
         self.seg.pcd_fit_sphere(layer='bot', method='ls')
-        tmp_pcd = self.seg.get_bot_smooth_pcd()
-        tmp_pcd.paint_uniform_color([0, 0, 1])
-        self.seg.pcd_fit_spline(layer='bot')
+        # tmp_pcd = self.seg.get_bot_smooth_pcd()
+        # tmp_pcd.paint_uniform_color([0, 0, 1])
+        # self.seg.pcd_fit_spline(layer='bot')
         self.bot_smooth_pcd = self.seg.get_bot_smooth_pcd()
         self.bot_smooth_pcd.paint_uniform_color([0, 1, 0])
-        mean_dis = np.mean(np.abs(np.asarray(self.bot_smooth_pcd.points) -
-                                  np.asarray(tmp_pcd.points)), axis=0)
-        print("Posterior mean distance is:", mean_dis)
-        o3d.visualization.draw_geometries([self.bot_smooth_pcd, tmp_pcd,
-                                           mesh_frame])
+        # mean_dis = np.mean(np.abs(np.asarray(self.bot_smooth_pcd.points) -
+        #                           np.asarray(tmp_pcd.points)), axis=0)
+        # print("Posterior mean distance is:", mean_dis)
+        # o3d.visualization.draw_geometries([self.bot_smooth_pcd, tmp_pcd,
+        #                                    mesh_frame])
         self.seg.ray_tracing(np.repeat([[0.0, 0.0, 1.0]], np.asarray(
             self.top_smooth_pcd.points).shape[0], axis=0), layer="top")
         self.seg.ray_tracing(self.seg.refracts_top, layer='bot')
@@ -319,20 +319,14 @@ class Interpolation:
 
 
 if __name__ == "__main__":
-    # inter = Interpolation("../data/seg_res/seg_res_air_",
-    #                       [200, 600], 416, 401, 677, 5.81, 5.0,
-    #                       3.67, 1.0003, 1.4815, 1.0003, 10, 10, 1)
-    # inter = Interpolation("../data/seg_res/seg_res_bss",
-    #                       [200, 600], 416, 401, 677, 5.81, 5.0,
-    #                       3.67, 1.0003, 1.4815, 1.3432, 10, 10, 1)
-    inter = Interpolation("../data/seg_res/1117_6/seg_res_air",
-                          [200, 600], 416, 401, 677, 5.81, 5.0,
-                          3.67, 1.0003, 1.4815, 1.0003, 10, 10, 1)
+    inter = Interpolation("../data/seg_res/6/air_seg_res",
+                          [200, 600], 416, 401, 677, 5.843, 5.013,
+                          3.629, 1.0003, 1.4815, 1.0003, 10, 10, 1)
     inter.svd_fit_plane()
     print("\n ******************** \n")
-    inter = Interpolation("../data/seg_res/1117_6/seg_res_bss",
-                          [200, 600], 416, 401, 677, 5.81, 5.0,
-                          3.67, 1.0003, 1.4815, 1.3432, 10, 10, 1)
+    inter = Interpolation("../data/seg_res/6/bss_seg_res",
+                          [200, 600], 416, 401, 677, 5.843, 5.013,
+                          3.629, 1.0003, 1.4815, 1.3432, 10, 10, 1)
     inter.svd_fit_plane()
     # inter.nn_inter_pairs()
     # inter.grid_inter_pairs('../data/images/bss_crop/')
