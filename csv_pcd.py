@@ -344,7 +344,7 @@ class RealPCD:
                                                                  points_mm_s[:,
                                                                  1])],
                                                        kx=3, ky=3, s=2)
-            # print("The spline coefficients:", spline.get_coeffs())
+            # print("The spline coefficients:", spline.get_coeffs().shape)
             print("The spline knots:", spline.get_knots())
             print("Spline fitting residual:", spline.get_residual())
             for idx in tqdm(range(points_mm_s.shape[0])):
@@ -354,9 +354,10 @@ class RealPCD:
             self.top_smooth_pcd = o3d.geometry.PointCloud()
             self.top_smooth_pcd.points =\
                 o3d.utility.Vector3dVector(points_mm_s)
-            self.top_smooth_pcd.estimate_normals(search_param=o3d.geometry.KDTreeSearchParamKNN(knn=100),
-                                        fast_normal_computation=False)
-            self.top_smooth_pcd.orient_normals_to_align_with_direction(np.array([0.0, 0.0, -1.0]))
+            self.top_smooth_pcd.normals = self.spline_normal(points_mm_s,
+                                                             spline)
+            self.top_smooth_pcd.orient_normals_to_align_with_direction(
+                np.array([0.0, 0.0, -1.0]))
             self.top_smooth_pcd.normalize_normals()
         elif layer == 'bot':
             bot_points_mm_s = np.array(np.asarray(
@@ -375,7 +376,7 @@ class RealPCD:
                                                                  points_mm_s[:,
                                                                  1])],
                                                        kx=3, ky=3, s=2)
-            # print("The spline coefficients:", spline.get_coeffs())
+            # print("The spline coefficients:", spline.get_coeffs().shape)
             print("The spline knots:", spline.get_knots())
             print("Spline fitting residual:", spline.get_residual())
             for idx in tqdm(range(points_mm_s.shape[0])):
@@ -383,11 +384,21 @@ class RealPCD:
                     spline(points_mm_s[idx, 0],
                            points_mm_s[idx, 1])
             self.bot_smooth_pcd = o3d.geometry.PointCloud()
-            self.bot_smooth_pcd.points = o3d.utility.Vector3dVector(points_mm_s)
-            self.bot_smooth_pcd.estimate_normals(search_param=o3d.geometry.KDTreeSearchParamKNN(knn=100),
-                                                 fast_normal_computation=False)
-            self.bot_smooth_pcd.orient_normals_to_align_with_direction(np.array([0.0, 0.0, -1.0]))
+            self.bot_smooth_pcd.points =\
+                o3d.utility.Vector3dVector(points_mm_s)
+            self.bot_smooth_pcd.normals = self.spline_normal(points_mm_s,
+                                                             spline)
+            self.bot_smooth_pcd.orient_normals_to_align_with_direction(
+                np.array([0.0, 0.0, -1.0]))
             self.bot_smooth_pcd.normalize_normals()
+
+    def spline_normal(self, points, spline):
+        der_x, der_y = np.zeros_like(points), np.zeros_like(points)
+        der_x[:, 0], der_y[:, 1] = 1, 1
+        der_x[:, 2] = spline.ev(points[:, 0], points[:, 1], dx=1, dy=0)
+        der_y[:, 2] = spline.ev(points[:, 0], points[:, 1], dx=0, dy=1)
+        normals = np.cross(der_x, der_y)
+        return o3d.utility.Vector3dVector(normals)
 
     def cal_normal(self, layer="top", method="marcos"):
         if method == "marcos":
