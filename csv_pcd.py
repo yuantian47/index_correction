@@ -267,9 +267,8 @@ class RealPCD:
                 self.top_smooth_pcd = o3d.geometry.PointCloud()
                 self.top_smooth_pcd.points =\
                     o3d.utility.Vector3dVector(top_points_mm_s)
-                self.top_smooth_pcd.estimate_normals(search_param=o3d.geometry.KDTreeSearchParamKNN(knn=100),
-                                            fast_normal_computation=False)
-                self.top_smooth_pcd.orient_normals_to_align_with_direction(np.array([0.0, 0.0, -1.0]))
+                self.top_smooth_pcd.normals =\
+                    self.sphere_normal(top_points_mm_s, res[:-1].T[0])
                 self.top_smooth_pcd.normalize_normals()
             elif layer == 'bot':
                 bot_points_mm_s = np.array(np.asarray(self.corrected_bot_pcd.points), copy=True)
@@ -282,7 +281,8 @@ class RealPCD:
                 ordinate[:, 0] = np.sum(np.power(bot_points_mm_s, 2), axis=1)
                 res, err, _, _ = np.linalg.lstsq(co_mat, ordinate, rcond=None)
                 print("The error is:", err)
-                rad = np.sqrt(res[0] * res[0] + res[1] * res[1] + res[2] * res[2] + res[3])
+                rad = np.sqrt(res[0] * res[0] +
+                              res[1] * res[1] + res[2] * res[2] + res[3])
                 print("The radius is: {}".format(rad))
                 bot_points_mm_s = np.array(np.asarray(self.bot_points_mm), copy=True)
                 for i in range(bot_points_mm_s.shape[0]):
@@ -290,10 +290,10 @@ class RealPCD:
                                                      np.power(bot_points_mm_s[i, 0] - res[0], 2) -
                                                      np.power(bot_points_mm_s[i, 1] - res[1], 2)) + res[2]
                 self.bot_smooth_pcd = o3d.geometry.PointCloud()
-                self.bot_smooth_pcd.points = o3d.utility.Vector3dVector(bot_points_mm_s)
-                self.bot_smooth_pcd.estimate_normals(search_param=o3d.geometry.KDTreeSearchParamKNN(knn=100),
-                                                     fast_normal_computation=False)
-                self.bot_smooth_pcd.orient_normals_to_align_with_direction(np.array([0.0, 0.0, -1.0]))
+                self.bot_smooth_pcd.points =\
+                    o3d.utility.Vector3dVector(bot_points_mm_s)
+                self.bot_smooth_pcd.normals =\
+                    self.sphere_normal(bot_points_mm_s, res[:-1].T[0])
                 self.bot_smooth_pcd.normalize_normals()
         if method == 'lms':
             if layer == 'top':
@@ -312,14 +312,20 @@ class RealPCD:
                 print("The radius is: {}".format(rad))
                 for i in range(top_points_mm_s.shape[0]):
                     top_points_mm_s[i, 2] = -np.sqrt(np.power(rad, 2) -
-                                                      np.power(top_points_mm_s[i, 0] - res[0], 2) -
-                                                      np.power(top_points_mm_s[i, 1] - res[1], 2)) + res[2]
+                                                     np.power(
+                                                         top_points_mm_s[i, 0] - res[0], 2) -
+                                                     np.power(
+                                                         top_points_mm_s[i, 1] - res[1], 2)) + res[2]
                 self.top_smooth_pcd = o3d.geometry.PointCloud()
-                self.top_smooth_pcd.points = o3d.utility.Vector3dVector(top_points_mm_s)
-                self.top_smooth_pcd.estimate_normals(search_param=o3d.geometry.KDTreeSearchParamKNN(knn=100),
-                                            fast_normal_computation=False)
-                self.top_smooth_pcd.orient_normals_to_align_with_direction(np.array([0.0, 0.0, -1.0]))
+                self.top_smooth_pcd.points =\
+                    o3d.utility.Vector3dVector(top_points_mm_s)
+                self.top_smooth_pcd.normals =\
+                    self.sphere_normal(top_points_mm_s, res[:-1].T[0])
                 self.top_smooth_pcd.normalize_normals()
+
+    def sphere_normal(self, points, center):
+        normal = points - center
+        return o3d.utility.Vector3dVector(normal)
 
     def pcd_fit_spline(self, layer='top'):
         if layer == 'top':

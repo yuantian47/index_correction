@@ -31,34 +31,34 @@ class Interpolation:
                                    xlength, ylength, zlength, n1, n2, n3)
         self.seg.remove_outlier(layer='top')
         self.seg.pcd_fit_sphere(method='ls')
-        tmp_pcd = self.seg.get_top_smooth_pcd()
-        tmp_pcd.paint_uniform_color([0, 1, 0])
-        self.seg.pcd_fit_spline(layer='top')
+        # tmp_pcd = self.seg.get_top_smooth_pcd()
+        # tmp_pcd.paint_uniform_color([0, 1, 0])
+        # self.seg.pcd_fit_spline(layer='top')
         self.top_smooth_pcd = self.seg.get_top_smooth_pcd()
         self.top_smooth_pcd.paint_uniform_color([1, 0, 0])
-        mean_dis = np.mean(np.abs(np.asarray(self.top_smooth_pcd.points) -
-                                  np.asarray(tmp_pcd.points)), axis=0)
-        print("Anterior mean distance is :", mean_dis)
-        mesh_frame = \
-            o3d.geometry.TriangleMesh.create_coordinate_frame(size=1,
-                                                              origin=[0, 0, 0])
-        o3d.visualization.draw_geometries([self.top_smooth_pcd, tmp_pcd,
-                                           mesh_frame])
+        # mean_dis = np.mean(np.abs(np.asarray(self.top_smooth_pcd.points) -
+        #                           np.asarray(tmp_pcd.points)), axis=0)
+        # print("Anterior mean distance is :", mean_dis)
+        # mesh_frame = \
+        #     o3d.geometry.TriangleMesh.create_coordinate_frame(size=1,
+        #                                                       origin=[0, 0, 0])
+        # o3d.visualization.draw_geometries([self.top_smooth_pcd, tmp_pcd,
+        #                                    mesh_frame])
         self.seg.ray_tracing(np.repeat([[0.0, 0.0, 1.0]], np.asarray(
             self.top_smooth_pcd.points).shape[0], axis=0))
         self.seg.refraction_correction()
         self.seg.remove_outlier(layer='corrected_bot')
         self.seg.pcd_fit_sphere(layer='bot', method='ls')
-        tmp_pcd = self.seg.get_bot_smooth_pcd()
-        tmp_pcd.paint_uniform_color([0, 0, 1])
-        self.seg.pcd_fit_spline(layer='bot')
+        # tmp_pcd = self.seg.get_bot_smooth_pcd()
+        # tmp_pcd.paint_uniform_color([0, 0, 1])
+        # self.seg.pcd_fit_spline(layer='bot')
         self.bot_smooth_pcd = self.seg.get_bot_smooth_pcd()
         self.bot_smooth_pcd.paint_uniform_color([0, 1, 0])
-        mean_dis = np.mean(np.abs(np.asarray(self.bot_smooth_pcd.points) -
-                                  np.asarray(tmp_pcd.points)), axis=0)
-        print("Posterior mean distance is:", mean_dis)
-        o3d.visualization.draw_geometries([self.bot_smooth_pcd, tmp_pcd,
-                                           mesh_frame])
+        # mean_dis = np.mean(np.abs(np.asarray(self.bot_smooth_pcd.points) -
+        #                           np.asarray(tmp_pcd.points)), axis=0)
+        # print("Posterior mean distance is:", mean_dis)
+        # o3d.visualization.draw_geometries([self.bot_smooth_pcd, tmp_pcd,
+        #                                    mesh_frame])
         self.seg.ray_tracing(np.repeat([[0.0, 0.0, 1.0]], np.asarray(
             self.top_smooth_pcd.points).shape[0], axis=0), layer="top")
         self.seg.ray_tracing(self.seg.refracts_top, layer='bot')
