@@ -83,7 +83,7 @@ class RealPCD:
                                                str(i) + ".csv",
                                                header=None))
             emp_seg_raw = np.array(pd.read_csv(
-                "../data/seg_res/6/tar_seg_res/result_top_" + str(i)
+                "../data/seg_res/2/tar_seg_res/result_top_" + str(i)
                 + ".csv", header=None) + np.array([0, 200]))
             top_seg_up, bot_seg_up = np.zeros((xdim, 3)), np.zeros((xdim, 3))
             top_seg_dn, bot_seg_dn = np.zeros((xdim, 3)), np.zeros((xdim, 3))
@@ -338,7 +338,7 @@ class RealPCD:
                                                                  points_mm_s[:,
                                                                  1])],
                                                        kx=3, ky=3, s=2)
-            print("The spline coefficients:", spline.get_coeffs())
+            # print("The spline coefficients:", spline.get_coeffs())
             print("The spline knots:", spline.get_knots())
             print("Spline fitting residual:", spline.get_residual())
             for idx in tqdm(range(points_mm_s.shape[0])):
@@ -369,7 +369,7 @@ class RealPCD:
                                                                  points_mm_s[:,
                                                                  1])],
                                                        kx=3, ky=3, s=2)
-            print("The spline coefficients:", spline.get_coeffs())
+            # print("The spline coefficients:", spline.get_coeffs())
             print("The spline knots:", spline.get_knots())
             print("Spline fitting residual:", spline.get_residual())
             for idx in tqdm(range(points_mm_s.shape[0])):
