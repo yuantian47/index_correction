@@ -29,7 +29,7 @@ class Interpolation:
         self.idx_range = idx_range
         self.seg = csv_pcd.RealPCD(directory, idx_range, xdim, ydim, zdim,
                                    xlength, ylength, zlength, n1, n2, n3)
-        self.seg.remove_outlier(layer='top')
+        self.seg.remove_outlier(layer='top', neighbors=100)
         self.seg.pcd_fit_sphere(method='ls')
         tmp_pcd = self.seg.get_top_smooth_pcd()
         tmp_pcd.paint_uniform_color([0, 1, 0])
@@ -47,7 +47,7 @@ class Interpolation:
         self.seg.ray_tracing(np.repeat([[0.0, 0.0, 1.0]], np.asarray(
             self.top_smooth_pcd.points).shape[0], axis=0))
         self.seg.refraction_correction()
-        self.seg.remove_outlier(layer='corrected_bot')
+        self.seg.remove_outlier(layer='corrected_bot', neighbors=100)
         self.seg.pcd_fit_sphere(layer='bot', method='ls')
         tmp_pcd = self.seg.get_bot_smooth_pcd()
         tmp_pcd.paint_uniform_color([0, 0, 1])
@@ -305,9 +305,9 @@ class Interpolation:
                     img[i + x_padding][j] =\
                         np.uint8(self.gridinter(self.nninter(pos)))
         img = cv.cvtColor(img.transpose(), cv.COLOR_GRAY2RGB)
-        top_seg = np.array(pd.read_csv(self.directory + "result_top_" +
+        top_seg = np.array(pd.read_csv(self.directory + "/result_top_up_" +
                                        str(y_idx+200) + ".csv", header=None))
-        bot_seg = np.array(pd.read_csv(self.directory + "result_bot_" +
+        bot_seg = np.array(pd.read_csv(self.directory + "/result_bot_up_" +
                                        str(y_idx+200) + ".csv", header=None))
         for i in range(top_seg.shape[0]):
             img[top_seg[i][1]][top_seg[i][0] + x_padding] =\
@@ -329,7 +329,7 @@ if __name__ == "__main__":
                           3.629, 1.0003, 1.4815, 1.3432, 10, 10, 1)
     inter.svd_fit_plane()
     # inter.nn_inter_pairs()
-    # inter.grid_inter_pairs('../data/images/bss_crop/')
+    # inter.grid_inter_pairs('../data/seg_res/6/6_bss_crop/')
     # img = inter.reconstruction(240)
     # plt.imshow(img)
     # plt.show()

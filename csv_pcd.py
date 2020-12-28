@@ -84,6 +84,7 @@ class RealPCD:
                                                header=None))
             emp_seg_raw = np.array(pd.read_csv(
                 "../data/seg_res/2/tar_seg_res/result_top_" + str(i)
+
                 + ".csv", header=None) + np.array([0, 200]))
             top_seg_up, bot_seg_up = np.zeros((xdim, 3)), np.zeros((xdim, 3))
             top_seg_dn, bot_seg_dn = np.zeros((xdim, 3)), np.zeros((xdim, 3))
@@ -349,8 +350,8 @@ class RealPCD:
             print("Spline fitting residual:", spline.get_residual())
             for idx in tqdm(range(points_mm_s.shape[0])):
                 points_mm_s[idx, 2] =\
-                    spline(points_mm_s[idx, 0],
-                           points_mm_s[idx, 1])
+                    spline(points_mm_s[idx, 0], points_mm_s[idx, 1],
+                           grid=False)
             self.top_smooth_pcd = o3d.geometry.PointCloud()
             self.top_smooth_pcd.points =\
                 o3d.utility.Vector3dVector(points_mm_s)
@@ -381,8 +382,8 @@ class RealPCD:
             print("Spline fitting residual:", spline.get_residual())
             for idx in tqdm(range(points_mm_s.shape[0])):
                 points_mm_s[idx, 2] = \
-                    spline(points_mm_s[idx, 0],
-                           points_mm_s[idx, 1])
+                    spline(points_mm_s[idx, 0], points_mm_s[idx, 1],
+                           grid=False)
             self.bot_smooth_pcd = o3d.geometry.PointCloud()
             self.bot_smooth_pcd.points =\
                 o3d.utility.Vector3dVector(points_mm_s)
