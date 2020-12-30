@@ -83,7 +83,7 @@ class RealPCD:
                                                str(i) + ".csv",
                                                header=None))
             emp_seg_raw = np.array(pd.read_csv(
-                "../data/seg_res/2/tar_seg_res/result_top_" + str(i)
+                "../data/seg_res/1/tar_seg_res/result_top_" + str(i)
 
                 + ".csv", header=None) + np.array([0, 200]))
             top_seg_up, bot_seg_up = np.zeros((xdim, 3)), np.zeros((xdim, 3))
@@ -328,14 +328,33 @@ class RealPCD:
         normal = points - center
         return o3d.utility.Vector3dVector(normal)
 
+    def spline_fit_weight(self, pcd, nearset_points):
+        points = np.asarray(pcd.points)
+        mean_dists = np.zeros(points.shape[0])
+        weights = np.ones(points.shape[0])
+        pcd_tree = o3d.geometry.KDTreeFlann(pcd)
+        print("Using KDTree to calculate density around every point.")
+        for i in tqdm(range(points.shape[0])):
+            [k, idx, dists] = pcd_tree.search_knn_vector_3d(points[i],
+                                                            nearset_points)
+            mean_dists[i] = np.mean(np.asarray(dists))
+        avg_mean_dists = np.mean(mean_dists)
+        std_mean_dists = np.std(mean_dists)
+        for i in range(points.shape[0]):
+            if mean_dists[i] >= avg_mean_dists + 0.5 * std_mean_dists:
+                weights[i] = 1 * np.power(avg_mean_dists/mean_dists[i], 2)
+        return weights
+
     def pcd_fit_spline(self, layer='top'):
         if layer == 'top':
             top_points_mm_s = np.array(np.asarray(self.top_pcd.points),
                                        copy=True)
             points_mm_s = np.array(np.asarray(self.top_points_mm), copy=True)
+            weights = self.spline_fit_weight(self.top_pcd, 100)
             spline = interpolate.SmoothBivariateSpline(top_points_mm_s[:, 0],
                                                        top_points_mm_s[:, 1],
                                                        top_points_mm_s[:, 2],
+                                                       weights,
                                                        bbox=[0,
                                                              np.max(
                                                                  points_mm_s[:,
@@ -361,13 +380,14 @@ class RealPCD:
                 np.array([0.0, 0.0, -1.0]))
             self.top_smooth_pcd.normalize_normals()
         elif layer == 'bot':
-            bot_points_mm_s = np.array(np.asarray(
-                self.corrected_bot_pcd.points),
-                                       copy=True)
+            bot_points_mm_s = np.array(
+                np.asarray(self.corrected_bot_pcd.points), copy=True)
             points_mm_s = np.array(np.asarray(self.bot_points_mm), copy=True)
+            weights = self.spline_fit_weight(self.corrected_bot_pcd, 100)
             spline = interpolate.SmoothBivariateSpline(bot_points_mm_s[:, 0],
                                                        bot_points_mm_s[:, 1],
                                                        bot_points_mm_s[:, 2],
+                                                       weights,
                                                        bbox=[0,
                                                              np.max(
                                                                  points_mm_s[:,

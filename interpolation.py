@@ -319,12 +319,12 @@ class Interpolation:
 
 
 if __name__ == "__main__":
-    inter = Interpolation("../data/seg_res/2/air_seg_res",
+    inter = Interpolation("../data/seg_res/1/air_seg_res",
                           [200, 600], 416, 401, 677, 5.843, 5.013,
                           3.629, 1.0003, 1.4815, 1.0003, 10, 10, 1)
     inter.svd_fit_plane()
     print("\n ******************** \n")
-    inter = Interpolation("../data/seg_res/2/bss_seg_res",
+    inter = Interpolation("../data/seg_res/1/bss_seg_res",
                           [200, 600], 416, 401, 677, 5.843, 5.013,
                           3.629, 1.0003, 1.4815, 1.3432, 10, 10, 1)
     inter.svd_fit_plane()
