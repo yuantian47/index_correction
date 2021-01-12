@@ -19,27 +19,27 @@ def display_inlier_outlier(pcd, ind):
     o3d.visualization.draw_geometries([inlier_pcd, outlier_pcd, mesh_frame])
 
 
-def downsample_compare(raw_pcd, dp_rate):
-    pcd_dp = raw_pcd.uniform_down_sample(dp_rate)
-    # pcd_dp, unknown_arr, unknow_list = raw_pcd.voxel_down_sample_and_trace(0.02, raw_pcd.get_min_bound(), raw_pcd.get_max_bound())
-    pcd_dp.estimate_normals(search_param=o3d.geometry.KDTreeSearchParamKNN(knn=int(100 / dp_rate)),
-                            fast_normal_computation=False)
-    pcd_dp.orient_normals_to_align_with_direction(np.array([0.0, 0.0, -1.0]))
-    pcd_dp.normalize_normals()
-    raw_normals = np.asarray(raw_pcd.normals)[::dp_rate]
-    dp_normals = np.asarray(pcd_dp.normals)
-    if raw_normals.shape != dp_normals.shape:
-        raise ValueError("Two normals' arrays have different shape!")
-    angle_list = []
-    for i in range(raw_normals.shape[0]):
-        angle_list.append(np.dot(raw_normals[i], dp_normals[i]) /
-                          (np.linalg.norm(raw_normals[i]) * np.linalg.norm(dp_normals[i])))
-    angle_array = np.arccos(np.around(angle_list, 5))
-    mesh_frame = o3d.geometry.TriangleMesh.create_coordinate_frame(size=1, origin=[0, 0, 0])
-    o3d.visualization.draw_geometries([mesh_frame, pcd_dp],
-                                      "Down Sampled Point Cloud with rate " + str(dp_rate),
-                                      point_show_normal=True)
-    return angle_array
+# def downsample_compare(raw_pcd, dp_rate):
+#     pcd_dp = raw_pcd.uniform_down_sample(dp_rate)
+#     # pcd_dp, unknown_arr, unknow_list = raw_pcd.voxel_down_sample_and_trace(0.02, raw_pcd.get_min_bound(), raw_pcd.get_max_bound())
+#     pcd_dp.estimate_normals(search_param=o3d.geometry.KDTreeSearchParamKNN(knn=int(100 / dp_rate)),
+#                             fast_normal_computation=False)
+#     pcd_dp.orient_normals_to_align_with_direction(np.array([0.0, 0.0, -1.0]))
+#     pcd_dp.normalize_normals()
+#     raw_normals = np.asarray(raw_pcd.normals)[::dp_rate]
+#     dp_normals = np.asarray(pcd_dp.normals)
+#     if raw_normals.shape != dp_normals.shape:
+#         raise ValueError("Two normals' arrays have different shape!")
+#     angle_list = []
+#     for i in range(raw_normals.shape[0]):
+#         angle_list.append(np.dot(raw_normals[i], dp_normals[i]) /
+#                           (np.linalg.norm(raw_normals[i]) * np.linalg.norm(dp_normals[i])))
+#     angle_array = np.arccos(np.around(angle_list, 5))
+#     mesh_frame = o3d.geometry.TriangleMesh.create_coordinate_frame(size=1, origin=[0, 0, 0])
+#     o3d.visualization.draw_geometries([mesh_frame, pcd_dp],
+#                                       "Down Sampled Point Cloud with rate " + str(dp_rate),
+#                                       point_show_normal=True)
+#     return angle_array
 
 
 class RealPCD:
@@ -421,32 +421,32 @@ class RealPCD:
         normals = np.cross(der_x, der_y)
         return o3d.utility.Vector3dVector(normals)
 
-    def cal_normal(self, layer="top", method="marcos"):
-        if method == "marcos":
-            kernel_h, kernel_v = np.array([[0.5, 0, -0.5]]), np.array([[-0.5], [0], [0.5]])
-            if layer == "top":
-                normal_cal = nc.Marcos_normal(kernel_h, kernel_v, self.top_points_mm, self.xdim, self.ydim)
-                self.top_pcd.normals = o3d.utility.Vector3dVector(normal_cal.get_normal() * [0.0, 0.0, -1.0])
-            elif layer == "bot":
-                normal_cal = nc.Marcos_normal(kernel_h, kernel_v, self.bot_points_mm, self.xdim, self.ydim)
-                self.bot_pcd.normals = o3d.utility.Vector3dVector(normal_cal.get_normal())
-            else:
-                raise ValueError("Please indicate correct layer's name.")
-        elif method == "o3d":
-            if layer == "top":
-                self.top_pcd.estimate_normals(search_param=o3d.geometry.KDTreeSearchParamKNN(knn=100),
-                                              fast_normal_computation=False)
-                self.top_pcd.orient_normals_to_align_with_direction(np.array([0.0, 0.0, -1.0]))
-                self.top_pcd.normalize_normals()
-            elif layer == "bot":
-                self.bot_pcd.estimate_normals(search_param=o3d.geometry.KDTreeSearchParamKNN(knn=100),
-                                              fast_normal_computation=False)
-                self.bot_pcd.orient_normals_to_align_with_direction(np.array([0.0, 0.0, -1.0]))
-                self.bot_pcd.normalize_normals()
-            else:
-                raise ValueError("Please indicate correct layer's name.")
-        else:
-            raise ValueError("Please indicate correct normal calculation method.")
+    # def cal_normal(self, layer="top", method="marcos"):
+    #     if method == "marcos":
+    #         kernel_h, kernel_v = np.array([[0.5, 0, -0.5]]), np.array([[-0.5], [0], [0.5]])
+    #         if layer == "top":
+    #             normal_cal = nc.Marcos_normal(kernel_h, kernel_v, self.top_points_mm, self.xdim, self.ydim)
+    #             self.top_pcd.normals = o3d.utility.Vector3dVector(normal_cal.get_normal() * [0.0, 0.0, -1.0])
+    #         elif layer == "bot":
+    #             normal_cal = nc.Marcos_normal(kernel_h, kernel_v, self.bot_points_mm, self.xdim, self.ydim)
+    #             self.bot_pcd.normals = o3d.utility.Vector3dVector(normal_cal.get_normal())
+    #         else:
+    #             raise ValueError("Please indicate correct layer's name.")
+    #     elif method == "o3d":
+    #         if layer == "top":
+    #             self.top_pcd.estimate_normals(search_param=o3d.geometry.KDTreeSearchParamKNN(knn=100),
+    #                                           fast_normal_computation=False)
+    #             self.top_pcd.orient_normals_to_align_with_direction(np.array([0.0, 0.0, -1.0]))
+    #             self.top_pcd.normalize_normals()
+    #         elif layer == "bot":
+    #             self.bot_pcd.estimate_normals(search_param=o3d.geometry.KDTreeSearchParamKNN(knn=100),
+    #                                           fast_normal_computation=False)
+    #             self.bot_pcd.orient_normals_to_align_with_direction(np.array([0.0, 0.0, -1.0]))
+    #             self.bot_pcd.normalize_normals()
+    #         else:
+    #             raise ValueError("Please indicate correct layer's name.")
+    #     else:
+    #         raise ValueError("Please indicate correct normal calculation method.")
 
     def ray_tracing(self, incidents, layer='top'):
         # if incidents.shape[0] != self.xdim * self.ydim:
@@ -503,63 +503,63 @@ class RealPCD:
             ref_vec_arr[i] = z_distance[i] * refracts_top[i]
         corrected_bot_points = top_points + ref_vec_arr
         self.corrected_bot_pcd.points = o3d.utility.Vector3dVector(corrected_bot_points)
-        self.corrected_bot_pcd.estimate_normals(search_param=o3d.geometry.KDTreeSearchParamKNN(knn=100),
-                                                fast_normal_computation=False)
-        self.corrected_bot_pcd.paint_uniform_color([0.5, 0.5, 0.0])
+        # self.corrected_bot_pcd.estimate_normals(search_param=o3d.geometry.KDTreeSearchParamKNN(knn=100),
+        #                                         fast_normal_computation=False)
+        # self.corrected_bot_pcd.paint_uniform_color([0.5, 0.5, 0.0])
 
 
-if __name__ == "__main__":
-    seg = RealPCD("../data/seg_res/seg_res_calib_760/", [200, 600], 416, 401, 310, 5.73, 5.0, 1.68, 1, 1.466, 1)
-
-    """Remove the outlier"""
-    # seg.edit_pcd()
-    seg.remove_outlier(layer='top')
-
-    seg.pcd_fit_sphere(method='ls')
-    seg.cal_normal(method='o3d')
-    seg.cal_normal(layer='bot', method='o3d')
-    top_pcd = seg.get_top_pcd()
-    top_smooth_pcd = seg.get_top_smooth_pcd()
-    bot_pcd = seg.get_bot_pcd()
-    mesh_frame = o3d.geometry.TriangleMesh.create_coordinate_frame(size=1, origin=[0, 0, 0])
-    top_smooth_pcd.paint_uniform_color([0, 1, 0])
-    top_pcd.paint_uniform_color([1, 0, 0])
-    bot_pcd.paint_uniform_color([0, 0, 1])
-    # o3d.visualization.draw_geometries([top_pcd, bot_pcd, mesh_frame], window_name="contact lens two layers",
-    #                                   point_show_normal=False)
-    # o3d.visualization.draw_geometries([top_smooth_pcd, top_pcd, mesh_frame], window_name="contact lens compare",
-    #                                   point_show_normal=False)
-
-    seg.ray_tracing(np.repeat([[0.0, 0.0, 1.0]], np.asarray(top_smooth_pcd.points).shape[0], axis=0))
-    seg.refraction_correction()
-    seg.remove_outlier(layer='corrected_bot')
-    corrected_bot_pcd = seg.get_corrected_bot_pcd()
-    o3d.visualization.draw_geometries([top_pcd, corrected_bot_pcd, bot_pcd, mesh_frame],
-                                      window_name="smooth index correction on bottom layer",
-                                      point_show_normal=False)
-
-    seg.pcd_fit_sphere(layer='bot', method='ls')
-    bot_smooth_pcd = seg.get_bot_smooth_pcd()
-    bot_smooth_pcd.paint_uniform_color([0, 1, 0])
-    corrected_bot_pcd.paint_uniform_color([1, 0, 0])
-    o3d.visualization.draw_geometries([corrected_bot_pcd, bot_smooth_pcd, mesh_frame],
-                                      window_name="smooth fit a sphere on bottom layer",
-                                      point_show_normal=False)
-
-    seg.ray_tracing(np.repeat([[0.0, 0.0, 1.0]], np.asarray(top_pcd.points).shape[0], axis=0), layer="raw_top")
-    seg.refraction_correction(raw=True)
-    corrected_bot_pcd = seg.get_corrected_bot_pcd()
-    o3d.visualization.draw_geometries([top_pcd, corrected_bot_pcd, bot_pcd, mesh_frame],
-                                      window_name="raw index correction on bottom layer (K=100)",
-                                      point_show_normal=False)
-
-    seg.pcd_fit_sphere(layer='bot', method='ls')
-    bot_smooth_pcd = seg.get_bot_smooth_pcd()
-    bot_smooth_pcd.paint_uniform_color([0, 1, 0])
-    corrected_bot_pcd.paint_uniform_color([1, 0, 0])
-    o3d.visualization.draw_geometries([corrected_bot_pcd, bot_smooth_pcd, mesh_frame],
-                                      window_name="raw fit a sphere on bottom layer (K=100)",
-                                      point_show_normal=False)
+# if __name__ == "__main__":
+#     seg = RealPCD("../data/seg_res/seg_res_calib_760/", [200, 600], 416, 401, 310, 5.73, 5.0, 1.68, 1, 1.466, 1)
+#
+#     """Remove the outlier"""
+#     # seg.edit_pcd()
+#     seg.remove_outlier(layer='top')
+#
+#     seg.pcd_fit_sphere(method='ls')
+#     seg.cal_normal(method='o3d')
+#     seg.cal_normal(layer='bot', method='o3d')
+#     top_pcd = seg.get_top_pcd()
+#     top_smooth_pcd = seg.get_top_smooth_pcd()
+#     bot_pcd = seg.get_bot_pcd()
+#     mesh_frame = o3d.geometry.TriangleMesh.create_coordinate_frame(size=1, origin=[0, 0, 0])
+#     top_smooth_pcd.paint_uniform_color([0, 1, 0])
+#     top_pcd.paint_uniform_color([1, 0, 0])
+#     bot_pcd.paint_uniform_color([0, 0, 1])
+#     # o3d.visualization.draw_geometries([top_pcd, bot_pcd, mesh_frame], window_name="contact lens two layers",
+#     #                                   point_show_normal=False)
+#     # o3d.visualization.draw_geometries([top_smooth_pcd, top_pcd, mesh_frame], window_name="contact lens compare",
+#     #                                   point_show_normal=False)
+#
+#     seg.ray_tracing(np.repeat([[0.0, 0.0, 1.0]], np.asarray(top_smooth_pcd.points).shape[0], axis=0))
+#     seg.refraction_correction()
+#     seg.remove_outlier(layer='corrected_bot')
+#     corrected_bot_pcd = seg.get_corrected_bot_pcd()
+#     o3d.visualization.draw_geometries([top_pcd, corrected_bot_pcd, bot_pcd, mesh_frame],
+#                                       window_name="smooth index correction on bottom layer",
+#                                       point_show_normal=False)
+#
+#     seg.pcd_fit_sphere(layer='bot', method='ls')
+#     bot_smooth_pcd = seg.get_bot_smooth_pcd()
+#     bot_smooth_pcd.paint_uniform_color([0, 1, 0])
+#     corrected_bot_pcd.paint_uniform_color([1, 0, 0])
+#     o3d.visualization.draw_geometries([corrected_bot_pcd, bot_smooth_pcd, mesh_frame],
+#                                       window_name="smooth fit a sphere on bottom layer",
+#                                       point_show_normal=False)
+#
+#     seg.ray_tracing(np.repeat([[0.0, 0.0, 1.0]], np.asarray(top_pcd.points).shape[0], axis=0), layer="raw_top")
+#     seg.refraction_correction(raw=True)
+#     corrected_bot_pcd = seg.get_corrected_bot_pcd()
+#     o3d.visualization.draw_geometries([top_pcd, corrected_bot_pcd, bot_pcd, mesh_frame],
+#                                       window_name="raw index correction on bottom layer (K=100)",
+#                                       point_show_normal=False)
+#
+#     seg.pcd_fit_sphere(layer='bot', method='ls')
+#     bot_smooth_pcd = seg.get_bot_smooth_pcd()
+#     bot_smooth_pcd.paint_uniform_color([0, 1, 0])
+#     corrected_bot_pcd.paint_uniform_color([1, 0, 0])
+#     o3d.visualization.draw_geometries([corrected_bot_pcd, bot_smooth_pcd, mesh_frame],
+#                                       window_name="raw fit a sphere on bottom layer (K=100)",
+#                                       point_show_normal=False)
 
     # """Down sample the real data"""
     # for i in range(2, 8, 2):
