@@ -29,7 +29,7 @@ class Interpolation:
         self.idx_range = idx_range
         self.seg = csv_pcd.RealPCD(directory, idx_range, xdim, ydim, zdim,
                                    xlength, ylength, zlength, n1, n2, n3)
-        self.seg.remove_outlier(layer='top', neighbors=100)
+        # self.seg.remove_outlier(layer='top', neighbors=100)
         self.seg.pcd_fit_sphere(method='ls')
         tmp_pcd = self.seg.get_top_smooth_pcd()
         tmp_pcd.paint_uniform_color([0, 1, 0])
@@ -47,7 +47,7 @@ class Interpolation:
         self.seg.ray_tracing(np.repeat([[0.0, 0.0, 1.0]], np.asarray(
             self.top_smooth_pcd.points).shape[0], axis=0))
         self.seg.refraction_correction()
-        self.seg.remove_outlier(layer='corrected_bot', neighbors=100)
+        # self.seg.remove_outlier(layer='corrected_bot', neighbors=100)
         self.seg.pcd_fit_sphere(layer='bot', method='ls')
         tmp_pcd = self.seg.get_bot_smooth_pcd()
         tmp_pcd.paint_uniform_color([0, 0, 1])
