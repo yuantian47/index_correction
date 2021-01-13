@@ -20,15 +20,17 @@ def points_dis2plane(a, b, c, d, pts):
 
 class Interpolation:
     def __init__(self, directory, idx_range, xdim, ydim, zdim, xlength,
-                 ylength, zlength, n1, n2, n3, dp_x, dp_y, dp_z):
+                 ylength, zlength, n1, n2, n3, dp_x, dp_y, dp_z, group_idx):
         self.xdim, self.ydim, self.zdim = xdim, ydim, zdim
         self.xlength, self.ylength, self.zlength = xlength, ylength, zlength
         self.n1, self.n2, self.n3 = n1, n2, n3
         self.dp_x, self.dp_y, self.dp_z = dp_x, dp_y, dp_z
         self.directory = directory
         self.idx_range = idx_range
+        self.group_idx = group_idx
         self.seg = csv_pcd.RealPCD(directory, idx_range, xdim, ydim, zdim,
-                                   xlength, ylength, zlength, n1, n2, n3)
+                                   xlength, ylength, zlength, n1, n2, n3,
+                                   self.group_idx)
         # self.seg.remove_outlier(layer='top', neighbors=100)
         self.seg.pcd_fit_sphere(method='ls')
         tmp_pcd = self.seg.get_top_smooth_pcd()
@@ -140,6 +142,7 @@ class Interpolation:
         print("The normal difference is {:.4f}".format(normal_diff))
         print("The mean difference of two raw point clouds is {:.4f}".format(
             tar_mean[2] - emp_mean[2]))
+        return normal_diff, tar_mean[2] - emp_mean[2]
 
     def grid_inter_pairs(self, imgs_dir):
         values_gr = np.zeros((self.xdim, self.ydim, self.zdim))
@@ -319,15 +322,38 @@ class Interpolation:
 
 
 if __name__ == "__main__":
-    inter = Interpolation("../data/seg_res/1/air_seg_res",
-                          [200, 600], 416, 401, 677, 5.843, 5.013,
-                          3.629, 1.0003, 1.4815, 1.0003, 10, 10, 1)
-    inter.svd_fit_plane()
-    print("\n ******************** \n")
-    inter = Interpolation("../data/seg_res/1/bss_seg_res",
-                          [200, 600], 416, 401, 677, 5.843, 5.013,
-                          3.629, 1.0003, 1.4815, 1.3432, 10, 10, 1)
-    inter.svd_fit_plane()
+
+    air_normal_diffs = np.zeros(6)
+    air_tar_dists = np.zeros(6)
+    bss_normal_diffs = np.zeros(6)
+    bss_tar_dists = np.zeros(6)
+
+    for i in range(1, 7):
+        inter = Interpolation("../data/seg_res/" + str(i) + "/air_seg_res",
+                              [200, 600], 416, 401, 677, 5.843, 5.013,
+                              3.629, 1.0003, 1.4815, 1.0003, 10, 10, 1, i)
+        normal_diff, tar_dist = inter.svd_fit_plane()
+        air_normal_diffs[i-1], air_tar_dists[i-1] = normal_diff, tar_dist
+        print("\n ******************** \n")
+        inter = Interpolation("../data/seg_res/" + str(i) + "/bss_seg_res",
+                              [200, 600], 416, 401, 677, 5.843, 5.013,
+                              3.629, 1.0003, 1.4815, 1.3432, 10, 10, 1, i)
+        normal_diff, tar_dist = inter.svd_fit_plane()
+        bss_normal_diffs[i-1], bss_tar_dists[i-1] = normal_diff, tar_dist
+        print("\n ++++++++++++++++++++ ")
+        print(" ++++++++++++++++++++ \n")
+
+    print("Air Normal: ", np.mean(air_normal_diffs),
+          "+-", np.std(air_normal_diffs), air_normal_diffs)
+    print("Air Dists: ", np.mean(air_tar_dists), "+-",
+          np.std(air_tar_dists), air_tar_dists)
+
+    print("BSS Normal: ", np.mean(bss_normal_diffs),
+          "+-", np.std(bss_normal_diffs), bss_normal_diffs)
+    print("BSS Dists: ", np.mean(bss_tar_dists), "+-",
+          np.std(bss_tar_dists), bss_tar_dists)
+
+
     # inter.nn_inter_pairs()
     # inter.grid_inter_pairs('../data/seg_res/6/6_bss_crop/')
     # img = inter.reconstruction(240)
