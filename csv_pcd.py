@@ -25,16 +25,20 @@ class RealPCD:
         self.xdim, self.ydim, self.zdim = xdim, ydim, zdim
         self.xlength, self.ylength, self.zlength = xlength, ylength, zlength
         self.group_idx = group_idx
-        self.top_points, self.bot_points = np.zeros((xdim * ydim, 3)), np.zeros((xdim * ydim, 3))
+        self.top_points, self.bot_points =\
+            np.zeros((xdim * ydim, 3)), np.zeros((xdim * ydim, 3))
         self.tar_points = np.zeros((xdim * ydim, 3))
         self.emp_points = np.zeros((xdim * ydim, 3))
-        self.top_points_mm, self.bot_points_mm = np.zeros((xdim * ydim, 3)), np.zeros((xdim * ydim, 3))
+        self.top_points_mm, self.bot_points_mm =\
+            np.zeros((xdim * ydim, 3)), np.zeros((xdim * ydim, 3))
         self.tar_points_mm = np.zeros((xdim * ydim, 3))
         self.emp_points_mm = np.zeros((xdim * ydim, 3))
-        self.top_pcd, self.bot_pcd = o3d.geometry.PointCloud(), o3d.geometry.PointCloud()
+        self.top_pcd, self.bot_pcd =\
+            o3d.geometry.PointCloud(), o3d.geometry.PointCloud()
         self.tar_pcd = o3d.geometry.PointCloud()
         self.emp_pcd = o3d.geometry.PointCloud()
-        self.top_smooth_pcd, self.bot_smooth_pcd = o3d.geometry.PointCloud(), o3d.geometry.PointCloud()
+        self.top_smooth_pcd, self.bot_smooth_pcd =\
+            o3d.geometry.PointCloud(), o3d.geometry.PointCloud()
         self.corrected_bot_pcd = o3d.geometry.PointCloud()
         self.n1, self.n2, self.n3 = n1, n2, n3
         self.refracts_top = np.zeros((self.xdim * self.ydim, 3))
@@ -140,15 +144,19 @@ class RealPCD:
 
     def edit_pcd(self, layer='top'):
         if layer == 'top':
-            o3d.visualization.draw_geometries_with_editing([self.top_pcd], 'Edit Top Point Cloud')
+            o3d.visualization.draw_geometries_with_editing([self.top_pcd],
+                                                           'Edit Top Point Cloud')
             self.top_pcd = o3d.io.read_point_cloud('../data/pcd/top_pcd.ply')
         elif layer == 'bot':
-            o3d.visualization.draw_geometries_with_editing([self.bot_pcd], 'Edit Bottom Point Cloud')
+            o3d.visualization.draw_geometries_with_editing([self.bot_pcd],
+                                                           'Edit Bottom Point Cloud')
             self.bot_pcd = o3d.io.read_point_cloud('../data/pcd/bot_pcd.ply')
         else:
             raise ValueError("Please input vaild layer's name.")
 
-    def remove_outlier(self, layer='top', method='statistical', neighbors=100, std_ratio=0.5, radius=0.1):
+    def remove_outlier(self, layer='top',
+                       method='statistical',
+                       neighbors=100, std_ratio=0.5, radius=0.1):
         if layer == 'top':
             if method == 'statistical':
                 cl, self.top_ind = self.top_pcd.remove_statistical_outlier(nb_neighbors=neighbors, std_ratio=std_ratio)
