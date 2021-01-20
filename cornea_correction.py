@@ -66,7 +66,7 @@ class InterpolationCornea(Interpolation):
         self.directory = directory
         self.seg = CorneaPCD(directory, xdim, ydim, zdim, xlength, ylength,
                              zlength, n1, n2, n3, vol_idx)
-        # self.seg.remove_outlier(layer='top', neighbors=1000)
+        # self.seg.remove_outlier(layer='top', neighbors=500)
         self.seg.pcd_fit_spline(layer='top')
         self.top_smooth_pcd = self.seg.get_top_smooth_pcd()
         self.top_smooth_pcd.paint_uniform_color([1, 0, 0])
@@ -76,7 +76,7 @@ class InterpolationCornea(Interpolation):
         mesh_frame = \
             o3d.geometry.TriangleMesh.create_coordinate_frame(size=1,
                                                               origin=[0, 0, 0])
-        self.seg.remove_outlier(layer='corrected_bot', neighbors=1000)
+        # self.seg.remove_outlier(layer='corrected_bot', neighbors=500)
         corrected_bot_pcd = self.seg.get_corrected_bot_pcd()
         o3d.visualization.draw_geometries(
             [self.top_smooth_pcd, corrected_bot_pcd, mesh_frame],
@@ -103,16 +103,18 @@ class InterpolationCornea(Interpolation):
 
 
 if __name__ == "__main__":
-    test = CorneaPCD("../data/201208_DALK/12-08-2020_6_44_23_PM", 250, 48,
-                     198, 12, 7.19, 8, 1.0003, 1.4815, 1.0003, 0)
+    directory = "../data/201208_DALK/12-08-2020_6_57_55_PM"
+    test = CorneaPCD(directory, 250, 48, 198, 12, 7.19, 8, 1.0003, 1.376,
+                     1.0003, 15)
     top_pcd = test.get_top_pcd()
+    top_pcd.paint_uniform_color([1, 0, 0])
     bot_pcd = test.get_bot_pcd()
+    bot_pcd.paint_uniform_color([0, 1, 0])
     mesh_frame = \
         o3d.geometry.TriangleMesh.create_coordinate_frame(size=1,
                                                           origin=[0, 0, 0])
     o3d.visualization.draw_geometries([top_pcd, bot_pcd, mesh_frame])
 
-    test2 = InterpolationCornea("../data/201208_DALK/12-08-2020_6_44_23_PM",
-                                250, 48, 198, 12, 7.19, 8, 1.0003, 1.4815,
-                                1.0003, 1, 1, 1, 0)
+    test2 = InterpolationCornea(directory, 250, 48, 198, 12, 7.19, 8, 1.376,
+                                2.5, 1.0003, 1, 1, 1, 15)
     print("Program Finished.")
