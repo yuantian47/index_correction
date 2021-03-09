@@ -5,6 +5,7 @@ from tqdm import tqdm
 import scipy.interpolate
 import scipy.linalg
 import cv2 as cv
+import copy
 import matplotlib
 matplotlib.use("TkAgg")
 import matplotlib.pyplot as plt
@@ -16,6 +17,15 @@ def points_dis2plane(a, b, c, d, pts):
     dis = np.abs(a * pts[:, 0] + b * pts[:, 1] + c * pts[:, 2] + d) / np.sqrt(
         np.power(a, 2) + np.power(b, 2) + np.power(c, 2))
     return dis
+
+
+def draw_registration_result(source, target, transformation):
+    source_temp = copy.deepcopy(source)
+    target_temp = copy.deepcopy(target)
+    source_temp.paint_uniform_color([1, 0.706, 0])
+    target_temp.paint_uniform_color([0, 0.651, 0.929])
+    source_temp.transform(transformation)
+    o3d.visualization.draw_geometries([source_temp, target_temp])
 
 
 class Interpolation:
@@ -143,6 +153,18 @@ class Interpolation:
         print("The mean difference of two raw point clouds is {:.4f}".format(
             tar_mean[2] - emp_mean[2]))
         return normal_diff, tar_mean[2] - emp_mean[2]
+
+    def icp_registration(self):
+        trans_init = np.eye(4)
+        reg_p2p = o3d.registration.registration_icp(self.seg.tar_pcd,
+                                                    self.seg.emp_pcd,
+                                                    1.0,
+                                                    trans_init,
+                                                    o3d.registration.TransformationEstimationPointToPoint(),
+                                                    o3d.registration.ICPConvergenceCriteria(max_iteration=2000))
+        draw_registration_result(self.seg.tar_pcd, self.seg.emp_pcd,
+                                 reg_p2p.transformation)
+        return reg_p2p
 
     def grid_inter_pairs(self, imgs_dir):
         values_gr = np.zeros((self.xdim, self.ydim, self.zdim))
@@ -333,6 +355,8 @@ if __name__ == "__main__":
                               [300, 500], 416, 201, 1077, 5.843, 2.513,
                               5.773, 1.0003, 1.376, 1.0003, 10, 10, 1, i)
         normal_diff, tar_dist = inter.svd_fit_plane()
+        reg = inter.icp_registration()
+        print(reg.fitness, reg.inlier_rmse, reg.transformation)
         air_normal_diffs[i-1], air_tar_dists[i-1] = normal_diff, tar_dist
         print("\n ******************** \n")
         # inter = Interpolation("../data/seg_res/" + str(i) + "/bss_seg_res",
