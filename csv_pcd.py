@@ -53,23 +53,22 @@ class RealPCD:
             bot_seg_raw_up = np.array(pd.read_csv(self.directory +
                                                   "/result_bot_up_" + str(i) +
                                                   ".csv", header=None))
-            top_seg_raw_dn = np.array(pd.read_csv(self.directory +
-                                                  "/result_top_dn_" + str(i) +
-                                                  ".csv", header=None))
-            bot_seg_raw_dn = np.array(pd.read_csv(self.directory +
-                                                  "/result_bot_dn_" + str(i) +
-                                                  ".csv", header=None))
+            # top_seg_raw_dn = np.array(pd.read_csv(self.directory +
+            #                                       "/result_top_dn_" + str(i) +
+            #                                       ".csv", header=None))
+            # bot_seg_raw_dn = np.array(pd.read_csv(self.directory +
+            #                                       "/result_bot_dn_" + str(i) +
+            #                                       ".csv", header=None))
             tar_seg_raw = np.array(pd.read_csv(self.directory +
                                                "/result_tar_" +
                                                str(i) + ".csv",
                                                header=None))
             emp_seg_raw = np.array(pd.read_csv(
                 "../data/seg_res/" + str(self.group_idx) +
-                "/tar_seg_res/result_top_" + str(i)
-
-                + ".csv", header=None) + np.array([0, 200]))
+                "_c/tar_seg_res/result_top_" + str(i) + ".csv", header=None) +
+                                   np.array([0, 0]))
             top_seg_up, bot_seg_up = np.zeros((xdim, 3)), np.zeros((xdim, 3))
-            top_seg_dn, bot_seg_dn = np.zeros((xdim, 3)), np.zeros((xdim, 3))
+            # top_seg_dn, bot_seg_dn = np.zeros((xdim, 3)), np.zeros((xdim, 3))
             top_seg, bot_seg = np.zeros((xdim, 3)), np.zeros((xdim, 3))
             tar_seg = np.zeros((xdim, 3))
             emp_seg = np.zeros((xdim, 3))
@@ -82,26 +81,26 @@ class RealPCD:
                     bot_seg_raw_up[:, 0] == j)[0]])]
                 bot_seg_up[j] = np.insert(same_x_bot_up[np.argmax(
                     same_x_bot_up[:, 1])], 1, i-self.idx_range[0])
-                same_x_top_dn = top_seg_raw_dn[list([*np.where(
-                    top_seg_raw_dn[:, 0] == j)[0]])]
-                top_seg_dn[j] = np.insert(same_x_top_dn[np.argmin(
-                    same_x_top_dn[:, 1])], 1, i - self.idx_range[0])
-                same_x_bot_dn = bot_seg_raw_dn[list([*np.where(
-                    bot_seg_raw_dn[:, 0] == j)[0]])]
-                bot_seg_dn[j] = np.insert(same_x_bot_dn[np.argmin(
-                    same_x_bot_dn[:, 1])], 1, i - self.idx_range[0])
+                # same_x_top_dn = top_seg_raw_dn[list([*np.where(
+                #     top_seg_raw_dn[:, 0] == j)[0]])]
+                # top_seg_dn[j] = np.insert(same_x_top_dn[np.argmin(
+                #     same_x_top_dn[:, 1])], 1, i - self.idx_range[0])
+                # same_x_bot_dn = bot_seg_raw_dn[list([*np.where(
+                #     bot_seg_raw_dn[:, 0] == j)[0]])]
+                # bot_seg_dn[j] = np.insert(same_x_bot_dn[np.argmin(
+                #     same_x_bot_dn[:, 1])], 1, i - self.idx_range[0])
                 top_seg[j] = top_seg_up[j]
                 bot_seg[j] = bot_seg_up[j]
-                if top_seg_up[j][2] < top_seg_dn[j][2]:
-                    top_seg[j][2] = float(top_seg_up[j][2] + top_seg_dn[j][2])\
-                                    / 2
-                else:
-                    top_seg[j][2] = float(top_seg_up[j][2] - 3)
-                if bot_seg_up[j][2] < bot_seg_dn[j][2]:
-                    bot_seg[j][2] = float(bot_seg_up[j][2] + bot_seg_dn[j][2])\
-                                    / 2
-                else:
-                    bot_seg[j][2] = float(bot_seg_dn[j][2] - 3)
+                # if top_seg_up[j][2] < top_seg_dn[j][2]:
+                #     top_seg[j][2] = float(top_seg_up[j][2] + top_seg_dn[j][2])\
+                #                     / 2
+                # else:
+                #     top_seg[j][2] = float(top_seg_up[j][2] - 3)
+                # if bot_seg_up[j][2] < bot_seg_dn[j][2]:
+                #     bot_seg[j][2] = float(bot_seg_up[j][2] + bot_seg_dn[j][2])\
+                #                     / 2
+                # else:
+                #     bot_seg[j][2] = float(bot_seg_dn[j][2] - 3)
                 same_x_tar = tar_seg_raw[list([*np.where(tar_seg_raw[:,
                                                          0] == j)[0]])]
                 tar_seg[j] = np.insert(same_x_tar[np.argmax(same_x_tar[:, 1])],
@@ -349,7 +348,7 @@ class RealPCD:
                                                              np.max(
                                                                  points_mm_s[:,
                                                                  1])],
-                                                       kx=3, ky=3, s=20)
+                                                       kx=3, ky=3, s=5)
             # print("The spline coefficients:", spline.get_coeffs().shape)
             print("The spline knots:", spline.get_knots())
             print("Spline fitting residual:", spline.get_residual())
@@ -382,7 +381,7 @@ class RealPCD:
                                                              np.max(
                                                                  points_mm_s[:,
                                                                  1])],
-                                                       kx=3, ky=3, s=20)
+                                                       kx=3, ky=3, s=10)
             # print("The spline coefficients:", spline.get_coeffs().shape)
             print("The spline knots:", spline.get_knots())
             print("Spline fitting residual:", spline.get_residual())
