@@ -31,7 +31,7 @@ class Interpolation:
         self.seg = csv_pcd.RealPCD(directory, idx_range, xdim, ydim, zdim,
                                    xlength, ylength, zlength, n1, n2, n3,
                                    self.group_idx)
-        # self.seg.remove_outlier(layer='top', neighbors=100)
+        self.seg.remove_outlier(layer='top', neighbors=100)
         self.seg.pcd_fit_sphere(method='ls')
         tmp_pcd = self.seg.get_top_smooth_pcd()
         tmp_pcd.paint_uniform_color([0, 1, 0])
@@ -49,7 +49,7 @@ class Interpolation:
         self.seg.ray_tracing(np.repeat([[0.0, 0.0, 1.0]], np.asarray(
             self.top_smooth_pcd.points).shape[0], axis=0))
         self.seg.refraction_correction()
-        # self.seg.remove_outlier(layer='corrected_bot', neighbors=100)
+        self.seg.remove_outlier(layer='corrected_bot', neighbors=100)
         self.seg.pcd_fit_sphere(layer='bot', method='ls')
         tmp_pcd = self.seg.get_bot_smooth_pcd()
         tmp_pcd.paint_uniform_color([0, 0, 1])
@@ -71,7 +71,7 @@ class Interpolation:
             self.target_correction())
         self.seg.tar_pcd.paint_uniform_color([0, 0, 1])
         self.seg.emp_pcd.paint_uniform_color([0.5, 0.5, 0])
-        # self.seg.remove_outlier('tar')
+        self.seg.remove_outlier('tar')
         # self.seg.remove_outlier('emp')
         o3d.visualization.draw_geometries(
             [self.top_smooth_pcd, self.bot_smooth_pcd, self.seg.tar_pcd,
@@ -328,20 +328,20 @@ if __name__ == "__main__":
     bss_normal_diffs = np.zeros(6)
     bss_tar_dists = np.zeros(6)
 
-    for i in range(1, 7):
-        inter = Interpolation("../data/seg_res/" + str(i) + "/air_seg_res",
-                              [200, 600], 416, 401, 677, 5.843, 5.013,
-                              3.629, 1.0003, 1.4815, 1.0003, 10, 10, 1, i)
+    for i in range(3, 4):
+        inter = Interpolation("../data/seg_res/" + str(i) + "_c/air_seg_res",
+                              [300, 500], 416, 201, 1077, 5.843, 2.513,
+                              5.773, 1.0003, 1.376, 1.0003, 10, 10, 1, i)
         normal_diff, tar_dist = inter.svd_fit_plane()
         air_normal_diffs[i-1], air_tar_dists[i-1] = normal_diff, tar_dist
         print("\n ******************** \n")
-        inter = Interpolation("../data/seg_res/" + str(i) + "/bss_seg_res",
-                              [200, 600], 416, 401, 677, 5.843, 5.013,
-                              3.629, 1.0003, 1.4815, 1.3432, 10, 10, 1, i)
-        normal_diff, tar_dist = inter.svd_fit_plane()
-        bss_normal_diffs[i-1], bss_tar_dists[i-1] = normal_diff, tar_dist
-        print("\n ++++++++++++++++++++ ")
-        print(" ++++++++++++++++++++ \n")
+        # inter = Interpolation("../data/seg_res/" + str(i) + "/bss_seg_res",
+        #                       [200, 600], 416, 401, 677, 5.843, 5.013,
+        #                       3.629, 1.0003, 1.4815, 1.3432, 10, 10, 1, i)
+        # normal_diff, tar_dist = inter.svd_fit_plane()
+        # bss_normal_diffs[i-1], bss_tar_dists[i-1] = normal_diff, tar_dist
+        # print("\n ++++++++++++++++++++ ")
+        # print(" ++++++++++++++++++++ \n")
 
     print("Air Normal: ", np.mean(air_normal_diffs),
           "+-", np.std(air_normal_diffs), air_normal_diffs)
