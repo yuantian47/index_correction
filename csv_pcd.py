@@ -65,13 +65,16 @@ class RealPCD:
                                                header=None))
             emp_seg_raw = np.array(pd.read_csv(
                 "../data/seg_res/" + str(self.group_idx) +
-                "_c/tar_seg_res/result_top_" + str(i) + ".csv", header=None) +
-                                   np.array([0, 0]))
+                "_c/tar_seg_res/result_top_" + str(i) + ".csv", header=None))
+            emp_seg_raw_dn = np.array(pd.read_csv(
+                "../data/seg_res/" + str(self.group_idx) +
+                "_c/tar_seg_res/result_bot_" + str(i) + ".csv", header=None))
             top_seg_up, bot_seg_up = np.zeros((xdim, 3)), np.zeros((xdim, 3))
             # top_seg_dn, bot_seg_dn = np.zeros((xdim, 3)), np.zeros((xdim, 3))
             top_seg, bot_seg = np.zeros((xdim, 3)), np.zeros((xdim, 3))
             tar_seg = np.zeros((xdim, 3))
             emp_seg = np.zeros((xdim, 3))
+            emp_seg_dn = np.zeros((xdim, 3))
             for j in range(xdim):
                 same_x_top_up = top_seg_raw_up[list([*np.where(
                     top_seg_raw_up[:, 0] == j)[0]])]
@@ -110,6 +113,15 @@ class RealPCD:
                                                          0] == j)[0]])]
                 emp_seg[j] = np.insert(same_x_emp[np.argmax(same_x_emp[:, 1])],
                                        1, i - self.idx_range[0])
+                same_x_emp_dn = emp_seg_raw_dn[list([*np.where(
+                    emp_seg_raw_dn[:, 0] == j)[0]])]
+                emp_seg_dn[j] = np.insert(same_x_emp_dn[np.argmin(
+                    same_x_emp_dn[:, 1])], 1, i - self.idx_range[0])
+                if emp_seg[j][2] < emp_seg_dn[j][2]:
+                    emp_seg[j][2] = float(emp_seg[j][2] + emp_seg_dn[j][2])\
+                                    / 2
+                else:
+                    emp_seg[j][2] = float(emp_seg[j][2] - 5)
             top_seg_mm = np.multiply(top_seg,
                                      [float(self.xlength) / self.xdim,
                                       float(self.ylength) / self.ydim,
