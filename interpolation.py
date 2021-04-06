@@ -86,7 +86,7 @@ class Interpolation:
         o3d.visualization.draw_geometries(
             [self.top_smooth_pcd, self.bot_smooth_pcd, self.seg.tar_pcd,
              self.seg.emp_pcd, mesh_frame],
-            window_name="smooth fit a sphere on bottom layer (air)",
+            window_name="index correction result",
             point_show_normal=False)
         self.positions_nd, self.values_nd, self.values_gr = None, None, None
         self.nninter, self.gridinter = None, None
@@ -345,18 +345,25 @@ class Interpolation:
 
 if __name__ == "__main__":
 
-    air_normal_diffs = np.zeros(6)
-    air_tar_dists = np.zeros(6)
-    bss_normal_diffs = np.zeros(6)
-    bss_tar_dists = np.zeros(6)
+    air_normal_diffs = np.zeros(5)
+    air_tar_dists = np.zeros(5)
+    bss_normal_diffs = np.zeros(5)
+    bss_tar_dists = np.zeros(5)
 
-    for i in range(3, 4):
-        inter = Interpolation("../data/seg_res/" + str(i) + "_c/air_seg_res",
-                              [300, 500], 416, 201, 1077, 5.843, 2.513,
-                              5.773, 1.0003, 1.376, 1.0003, 10, 10, 1, i)
+    for i in range(1, 6):
+        if i == 3:
+            inter = Interpolation(
+                "../data/seg_res/" + str(i) + "_c/water_seg_res",
+                [210, 610], 500, 401, 877, 7.022, 5.0125,
+                4.701, 1.0003, 1.385, 1.324, 10, 10, 1, i)
+        else:
+            inter = Interpolation(
+                "../data/seg_res/" + str(i) + "_c/water_seg_res",
+                [200, 600], 500, 401, 877, 7.022, 5.0125,
+                4.701, 1.0003, 1.385, 1.324, 10, 10, 1, i)
         normal_diff, tar_dist = inter.svd_fit_plane()
-        reg = inter.icp_registration()
-        print(reg.fitness, reg.inlier_rmse, reg.transformation)
+        # reg = inter.icp_registration()
+        # print(reg.fitness, reg.inlier_rmse, reg.transformation)
         air_normal_diffs[i-1], air_tar_dists[i-1] = normal_diff, tar_dist
         print("\n ******************** \n")
         # inter = Interpolation("../data/seg_res/" + str(i) + "/bss_seg_res",

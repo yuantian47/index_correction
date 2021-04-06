@@ -103,8 +103,9 @@ class RealPCD:
                 #     bot_seg[j][2] = float(bot_seg_dn[j][2] - 3)
                 same_x_tar = tar_seg_raw[list([*np.where(tar_seg_raw[:,
                                                          0] == j)[0]])]
-                tar_seg[j] = np.insert(same_x_tar[np.argmax(same_x_tar[:, 1])],
-                                       1, i-self.idx_range[0])
+                if same_x_tar.any():
+                    tar_seg[j] = np.insert(same_x_tar[np.argmax(same_x_tar[:, 1])],
+                                            1, i-self.idx_range[0])
                 same_x_emp = emp_seg_raw[list([*np.where(emp_seg_raw[:,
                                                          0] == j)[0]])]
                 emp_seg[j] = np.insert(same_x_emp[np.argmax(same_x_emp[:, 1])],
