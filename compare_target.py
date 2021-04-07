@@ -67,7 +67,7 @@ class TargetPCD:
                                      emp_normal[1] * emp_points[:, 1] +
                                      d_emp) / emp_normal[2]
         fit_emp_pcd.points = o3d.utility.Vector3dVector(fit_emp_points)
-        fit_emp_pcd.paint_uniform_color([0.5, 0.5, 0])
+        fit_emp_pcd.paint_uniform_color([0.1, 0.5, 0])
         mesh_frame = \
             o3d.geometry.TriangleMesh.create_coordinate_frame(size=1,
                                                               origin=[0, 0, 0])
@@ -117,7 +117,7 @@ if __name__ == "__main__":
                           "_cropseg_res", [200, 600], 500, 401, 877, 7.022,
                           5.0125, 4.701)
     pcd_5 = tar_pcd_5.get_point_cloud()
-    pcd_5.paint_uniform_color([0, 1, 1])
+    pcd_5.paint_uniform_color([1, 1, 1])
 
     tar_pcd_6 = TargetPCD("../data/seg_res/tar_test/tar_" + str(7) +
                           "_cropseg_res", [200, 600], 500, 401, 877, 7.022,
@@ -129,15 +129,15 @@ if __name__ == "__main__":
     print("Normal diff 2:", normal_diff_5, "distance 2:", dis_diff_5)
     print("Normal diff 3:", normal_diff_6, "distance 3:", dis_diff_6)
 
-    reg_5 = tar_pcd_4.icp_registration(pcd_5)
-    print(reg_5.fitness, reg_5.inlier_rmse, reg_5.transformation)
+    # reg_5 = tar_pcd_4.icp_registration(pcd_5)
+    # print(reg_5.fitness, reg_5.inlier_rmse, reg_5.transformation)
+    #
+    # reg_6 = tar_pcd_4.icp_registration(pcd_6)
+    # print(reg_6.fitness, reg_6.inlier_rmse, reg_6.transformation)
 
-    reg_6 = tar_pcd_4.icp_registration(pcd_6)
-    print(reg_6.fitness, reg_6.inlier_rmse, reg_6.transformation)
-
-    mesh_frame = \
-        o3d.geometry.TriangleMesh.create_coordinate_frame(size=1,
-                                                          origin=[0, 0, 0])
-    o3d.visualization.draw_geometries([pcd_4, mesh_frame],
-                                      window_name="index correction result",
-                                      point_show_normal=False)
+    # mesh_frame = \
+    #     o3d.geometry.TriangleMesh.create_coordinate_frame(size=1,
+    #                                                       origin=[0, 0, 0])
+    # o3d.visualization.draw_geometries([pcd_4, mesh_frame],
+    #                                   window_name="index correction result",
+    #                                   point_show_normal=False)
