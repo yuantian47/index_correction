@@ -337,7 +337,6 @@ class Interpolation:
         for i in range(top_seg.shape[0]):
             img[top_seg[i][1]][top_seg[i][0] + x_padding] =\
                 np.array([255, 0, 0])
-        for i in range(bot_seg.shape[0]):
             img[bot_seg[i][1]][bot_seg[i][0] + x_padding] =\
                 np.array([0, 255, 0])
         return img
@@ -347,10 +346,8 @@ if __name__ == "__main__":
 
     air_normal_diffs = np.zeros(5)
     air_tar_dists = np.zeros(5)
-    bss_normal_diffs = np.zeros(5)
-    bss_tar_dists = np.zeros(5)
 
-    for i in range(1, 6):
+    for i in range(1, 2):
         if i == 3:
             inter = Interpolation(
                 "../data/seg_res/" + str(i) + "_c/water_seg_res",
@@ -362,33 +359,18 @@ if __name__ == "__main__":
                 [200, 600], 500, 401, 877, 7.022, 5.0125,
                 4.701, 1.0003, 1.385, 1.324, 10, 10, 1, i)
         normal_diff, tar_dist = inter.svd_fit_plane()
-        # reg = inter.icp_registration()
-        # print(reg.fitness, reg.inlier_rmse, reg.transformation)
         air_normal_diffs[i-1], air_tar_dists[i-1] = normal_diff, tar_dist
         print("\n ******************** \n")
-        # inter = Interpolation("../data/seg_res/" + str(i) + "/bss_seg_res",
-        #                       [200, 600], 416, 401, 677, 5.843, 5.013,
-        #                       3.629, 1.0003, 1.4815, 1.3432, 10, 10, 1, i)
-        # normal_diff, tar_dist = inter.svd_fit_plane()
-        # bss_normal_diffs[i-1], bss_tar_dists[i-1] = normal_diff, tar_dist
-        # print("\n ++++++++++++++++++++ ")
-        # print(" ++++++++++++++++++++ \n")
+        inter.nn_inter_pairs()
+        inter.grid_inter_pairs(
+            "../data/seg_res/" + str(i) + "_c/" + str(i) + "_water_crop/")
+        img = inter.reconstruction(100)
+        plt.imshow(img)
+        plt.show()
 
     print("Air Normal: ", np.mean(air_normal_diffs),
           "+-", np.std(air_normal_diffs), air_normal_diffs)
     print("Air Dists: ", np.mean(air_tar_dists), "+-",
           np.std(air_tar_dists), air_tar_dists)
-
-    print("BSS Normal: ", np.mean(bss_normal_diffs),
-          "+-", np.std(bss_normal_diffs), bss_normal_diffs)
-    print("BSS Dists: ", np.mean(bss_tar_dists), "+-",
-          np.std(bss_tar_dists), bss_tar_dists)
-
-
-    # inter.nn_inter_pairs()
-    # inter.grid_inter_pairs('../data/seg_res/6/6_bss_crop/')
-    # img = inter.reconstruction(240)
-    # plt.imshow(img)
-    # plt.show()
 
     print("Program Finished.")
