@@ -59,7 +59,7 @@ class Interpolation:
         self.seg.ray_tracing(np.repeat([[0.0, 0.0, 1.0]], np.asarray(
             self.top_smooth_pcd.points).shape[0], axis=0))
         self.seg.refraction_correction()
-        self.seg.remove_outlier(layer='corrected_bot', neighbors=100)
+        # self.seg.remove_outlier(layer='corrected_bot', neighbors=100)
         self.seg.pcd_fit_sphere(layer='bot', method='ls')
         tmp_pcd = self.seg.get_bot_smooth_pcd()
         tmp_pcd.paint_uniform_color([0, 0, 1])
@@ -249,70 +249,7 @@ class Interpolation:
                                                    self.positions_nd,
                                                    fill_value=-1.)
         print("Interpolator Built.")
-
-    def nn_inter_pairs(self):
-        positions = np.zeros(((self.xdim // self.dp_x) + 2,
-                              (self.ydim // self.dp_y) + 1,
-                              self.zdim // self.dp_z, 3))
-        values = np.zeros(((self.xdim // self.dp_x) + 2,
-                           (self.ydim // self.dp_y) + 1,
-                           self.zdim // self.dp_z, 3))
-        record_count = 0
-        bottom_count = 0
-        print("Building interpolation matrix.")
-        idx_x, idx_y = 0, 0
-        top_smooth_points = np.asarray(self.top_smooth_pcd.points)
-        bot_smooth_points = np.asarray(self.bot_smooth_pcd.points)
-        bot_points = np.asarray(self.seg.bot_points_mm)
-        for i in tqdm(range(top_smooth_points.shape[0])):
-            if idx_y == (self.ydim // self.dp_y) + 1:
-                break
-            if (i // self.xdim) % self.dp_y != 0:
-                continue
-            if (i % self.xdim) % self.dp_x != 0 and (i + 1) % self.xdim != 0:
-                continue
-            top_refract = self.seg.refracts_top[i]
-            bot_refract = self.seg.refracts_bot[i]
-            positions[idx_x, idx_y, :, :2] = top_smooth_points[i][:2]
-            z_positions = np.linspace(0, self.zlength, self.zdim // self.dp_z,
-                                      endpoint=False)
-            positions[idx_x, idx_y, :, 2] = z_positions
-            top_point = np.argwhere(z_positions >= top_smooth_points[i][2])
-            bot_point = np.argwhere(z_positions >= bot_points[i][2])
-            values[idx_x, idx_y, :, :2] = top_smooth_points[i][:2]
-            values[idx_x, idx_y, :top_point[0, 0], 2] = \
-                np.linspace(0, top_smooth_points[i][2], top_point[0, 0])
-            values[idx_x, idx_y, top_point[0, 0]:, :] = \
-                self.refract_correction_top(top_refract, top_smooth_points[i],
-                                            top_smooth_points[i],
-                                            positions[idx_x, idx_y,
-                                            top_point[0, 0]:, :],
-                                            self.n2 / self.n1)
-            values[idx_x, idx_y, bot_point[0, 0]:, :] = \
-                self.refract_correction_bot(bot_refract,
-                                            bot_smooth_points[i],
-                                            values[idx_x, idx_y,
-                                            bot_point[0, 0]:, :],
-                                            self.n3 / self.n2)
-            self.lowest_layer[bottom_count, :] = values[idx_x, idx_y, -1, :]
-            bottom_count += 1
-            if idx_x == 0:
-                self.left_layer[(record_count * self.zdim): ((record_count +
-                1) * self.zdim), :] = values[idx_x, idx_y, :, :]
-            idx_x += 1
-            if idx_x == self.xdim//self.dp_x + 2:
-                self.right_layer[(record_count * self.zdim): ((record_count +
-                1) * self.zdim), :] = values[idx_x - 1, idx_y, :, :]
-                idx_y += 1
-                idx_x = 0
-                record_count += 1
-        self.positions_nd, self.values_nd = positions.reshape(
-            (-1, 3)), values.reshape((-1, 3))
-        self.nninter = \
-            scipy.interpolate.LinearNDInterpolator(self.values_nd,
-                                                   self.positions_nd,
-                                                   fill_value=-1.)
-        print("Interpolator Built.")
+        return values, bot_smooth_dp, top_smooth_dp
 
     def refract_correction_top(self, refract, dis_origin, origin, points,
                                group_idx):
@@ -413,11 +350,15 @@ if __name__ == "__main__":
             inter = Interpolation(
                 "../data/seg_res/" + str(i) + "_c/water_seg_res",
                 [200, 600], 500, 401, 877, 7.022, 5.0125,
-                4.701, 1.0003, 1.385, 1.324, 10, 10, 1, i)
+                4.701, 1.0003, 1.388, 1.324, 10, 10, 1, i)
         normal_diff, tar_dist = inter.svd_fit_plane()
         air_normal_diffs[i-1], air_tar_dists[i-1] = normal_diff, tar_dist
         print("\n ******************** \n")
-        inter.nn_inter_pairs_pro()
+        values, bot, top = inter.nn_inter_pairs_pro()
+        # plt.scatter(values[:, 0, :, 0], values[:, 0, :, 2] * -1)
+        # plt.scatter(bot[:, 0, 0], bot[:, 0, 2] * -1)
+        # plt.scatter(top[:, 0, 0], top[:, 0, 2] * -1)
+        # plt.show()
         inter.grid_inter_pairs(
             "../data/seg_res/" + str(i) + "_c/" + str(i) + "_water_crop/")
         img = inter.reconstruction(200)

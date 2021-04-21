@@ -380,7 +380,8 @@ class RealPCD:
         elif layer == 'bot':
             bot_points_mm_s = np.array(
                 np.asarray(self.corrected_bot_pcd.points), copy=True)
-            points_mm_s = np.array(np.asarray(self.bot_points_mm), copy=True)
+            points_mm_s = np.array(np.asarray(self.corrected_bot_pcd.points),
+                                   copy=True)
             # weights = self.spline_fit_weight(self.corrected_bot_pcd, 100)
             spline = interpolate.SmoothBivariateSpline(bot_points_mm_s[:, 0],
                                                        bot_points_mm_s[:, 1],
