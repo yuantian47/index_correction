@@ -340,31 +340,31 @@ if __name__ == "__main__":
     air_normal_diffs = np.zeros(5)
     air_tar_dists = np.zeros(5)
 
-    for i in range(1, 2):
+    for i in range(1, 6):
         if i == 3:
             inter = Interpolation(
                 "../data/seg_res/" + str(i) + "_c/water_seg_res",
                 [210, 610], 500, 401, 877, 7.022, 5.0125,
-                4.701, 1.0003, 1.385, 1.324, 10, 10, 1, i)
+                4.701, 1.0003, 1.369, 1.340, 10, 10, 1, i)
         else:
             inter = Interpolation(
                 "../data/seg_res/" + str(i) + "_c/water_seg_res",
                 [200, 600], 500, 401, 877, 7.022, 5.0125,
-                4.701, 1.0003, 1.388, 1.324, 10, 10, 1, i)
+                4.701, 1.0003, 1.369, 1.340, 10, 10, 1, i)
         normal_diff, tar_dist = inter.svd_fit_plane()
         air_normal_diffs[i-1], air_tar_dists[i-1] = normal_diff, tar_dist
         print("\n ******************** \n")
-        values, bot, top = inter.nn_inter_pairs_pro()
+        # values, bot, top = inter.nn_inter_pairs_pro()
         # plt.scatter(values[:, 0, :, 0], values[:, 0, :, 2] * -1)
         # plt.scatter(bot[:, 0, 0], bot[:, 0, 2] * -1)
         # plt.scatter(top[:, 0, 0], top[:, 0, 2] * -1)
         # plt.show()
-        inter.grid_inter_pairs(
-            "../data/seg_res/" + str(i) + "_c/" + str(i) + "_water_crop/")
-        img = inter.reconstruction(200)
-        plt.imsave("test.png", img)
-        plt.imshow(img)
-        plt.show()
+        # inter.grid_inter_pairs(
+        #     "../data/seg_res/" + str(i) + "_c/" + str(i) + "_water_crop/")
+        # img = inter.reconstruction(200)
+        # plt.imsave("test.png", img)
+        # plt.imshow(img)
+        # plt.show()
 
     print("Air Normal: ", np.mean(air_normal_diffs),
           "+-", np.std(air_normal_diffs), air_normal_diffs)
