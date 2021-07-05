@@ -361,7 +361,7 @@ class RealPCD:
                                                              np.max(
                                                                  points_mm_s[:,
                                                                  1])],
-                                                       kx=3, ky=3, s=5)
+                                                       kx=3, ky=3, s=15)
             # print("The spline coefficients:", spline.get_coeffs().shape)
             print("The spline knots:", spline.get_knots())
             print("Spline fitting residual:", spline.get_residual())
@@ -395,7 +395,7 @@ class RealPCD:
                                                              np.max(
                                                                  points_mm_s[:,
                                                                  1])],
-                                                       kx=3, ky=3, s=10)
+                                                       kx=3, ky=3, s=40)
             # print("The spline coefficients:", spline.get_coeffs().shape)
             print("The spline knots:", spline.get_knots())
             print("Spline fitting residual:", spline.get_residual())
